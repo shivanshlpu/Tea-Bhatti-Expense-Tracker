@@ -77,21 +77,16 @@ async function apiFetch<T = any>(
             headers,
             credentials: 'include',
           });
-        } else {
-          logout();
-          window.location.href = '/login';
-          throw new Error('Session expired. Please log in again.');
         }
-      } else {
+      } else if (refreshResponse.status === 401 || refreshResponse.status === 403) {
         logout();
         window.location.href = '/login';
         throw new Error('Session expired. Please log in again.');
       }
     } catch (err: any) {
       if (err.message?.includes('Session expired')) throw err;
-      logout();
-      window.location.href = '/login';
-      throw new Error('Session expired. Please log in again.');
+      // Network error or server cold start — do NOT force logout, throw error for retry
+      throw new Error('Network request failed. Please check your connection and try again.');
     }
   }
 

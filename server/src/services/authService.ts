@@ -9,8 +9,8 @@ import { AuthUser } from '../middleware/auth';
 import type { SignupInput, LoginInput } from '@shop-finance/shared';
 
 const BCRYPT_COST = 12;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const ACCESS_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_EXPIRY_SECONDS = 90 * 24 * 60 * 60; // 90 days
 const REFRESH_TOKEN_FAMILY_PREFIX = 'rt_family:';
 const RESET_TOKEN_PREFIX = 'reset:';
 const RESET_TOKEN_EXPIRY = 15 * 60; // 15 minutes

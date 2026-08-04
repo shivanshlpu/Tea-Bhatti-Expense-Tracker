@@ -22,7 +22,7 @@ function Signup() {
     const result = SignupSchema.safeParse(form);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.errors.forEach((err: any) => {
         fieldErrors[err.path[0] as string] = err.message;
       });
       setErrors(fieldErrors);

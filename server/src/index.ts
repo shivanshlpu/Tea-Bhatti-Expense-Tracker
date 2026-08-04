@@ -37,12 +37,21 @@ app.use(
   })
 );
 
-// ── CORS — Allow configuration or wildcard fallback for production ──
-const corsOrigin = env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN;
-
+// ── CORS — Universal Vercel & Production Allow ──
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        origin.includes('localhost') ||
+        origin.includes('vercel.app') ||
+        origin === env.CORS_ORIGIN ||
+        env.CORS_ORIGIN === '*'
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],

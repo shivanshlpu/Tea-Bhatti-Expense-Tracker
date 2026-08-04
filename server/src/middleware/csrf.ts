@@ -20,7 +20,7 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     res.cookie(CSRF_COOKIE_NAME, csrfToken, {
       httpOnly: false, // Client JS needs to read this to send as header
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as any,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }

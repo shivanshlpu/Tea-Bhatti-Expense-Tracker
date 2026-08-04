@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LoginSchema } from '@shop-finance/shared';
 import { authApi } from '../api/client';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -129,19 +129,6 @@ function Login() {
               {loading ? <span className="spinner" /> : 'Sign In 🚀'}
             </button>
           </form>
-
-          <div style={{
-            textAlign: 'center',
-            marginTop: '1.5rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: 'var(--color-muted-foreground)',
-          }}>
-            Don't have an account?{' '}
-            <Link to="/signup" style={{ color: 'var(--color-accent)', fontWeight: 800, textDecoration: 'none' }}>
-              Create one
-            </Link>
-          </div>
         </div>
       </div>
     </div>

@@ -17,24 +17,11 @@ const REFRESH_COOKIE_OPTIONS = {
 /**
  * POST /api/auth/signup
  */
-router.post('/signup', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const input = SignupSchema.parse(req.body);
-    const result = await authService.signup(input);
-
-    // Set refresh token as HttpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-
-    res.status(201).json({
-      success: true,
-      data: {
-        accessToken: result.accessToken,
-        shop: result.shop,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
+router.post('/signup', async (_req: Request, res: Response) => {
+  res.status(403).json({
+    success: false,
+    error: 'Public signup is disabled. Contact system administrator for access.',
+  });
 });
 
 /**

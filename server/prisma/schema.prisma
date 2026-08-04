@@ -1,0 +1,160 @@
+// This is your Prisma schema file — exact schema from Section 3 of prompt.md
+// Every financial record uses soft-void (voidedAt + voidReason), never hard delete.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shop {
+  id           String   @id @default(cuid())
+  name         String
+  ownerName    String
+  mobile       String   @unique
+  email        String?  @unique
+  passwordHash String
+  currency     String   @default("INR")
+  theme        String   @default("light")
+  createdAt    DateTime @default(now())
+
+  users       User[]
+  sales       Sale[]
+  materialExp MaterialExpense[]
+  shopExp     ShopExpense[]
+  miscExp     MiscExpense[]
+  withdrawals Withdrawal[]
+  auditLogs   AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  role         Role     @default(OWNER)
+  mobile       String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([shopId])
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+model Sale {
+  id            String    @id @default(cuid())
+  shopId        String
+  shop          Shop      @relation(fields: [shopId], references: [id])
+  type          SaleType
+  amount        Decimal   @db.Decimal(12, 2)
+  paymentMethod String?
+  note          String?
+  saleDate      DateTime
+  createdAt     DateTime  @default(now())
+  createdBy     String
+  voidedAt      DateTime?
+  voidReason    String?
+
+  @@index([shopId, saleDate])
+}
+
+enum SaleType {
+  CASH
+  ONLINE
+}
+
+model MaterialExpense {
+  id         String    @id @default(cuid())
+  shopId     String
+  shop       Shop      @relation(fields: [shopId], references: [id])
+  category   String
+  amount     Decimal   @db.Decimal(12, 2)
+  mode       PayMode
+  note       String?
+  expDate    DateTime
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  voidedAt   DateTime?
+  voidReason String?
+
+  @@index([shopId, expDate])
+}
+
+enum PayMode {
+  CASH
+  ONLINE
+}
+
+model ShopExpense {
+  id          String    @id @default(cuid())
+  shopId      String
+  shop        Shop      @relation(fields: [shopId], references: [id])
+  category    String
+  mode        PayMode
+  amount      Decimal   @db.Decimal(12, 2)
+  note        String?
+  expDate     DateTime
+  isRecurring Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  createdBy   String
+  voidedAt    DateTime?
+  voidReason  String?
+
+  @@index([shopId, expDate])
+}
+
+model MiscExpense {
+  id         String    @id @default(cuid())
+  shopId     String
+  shop       Shop      @relation(fields: [shopId], references: [id])
+  name       String
+  mode       PayMode
+  amount     Decimal   @db.Decimal(12, 2)
+  note       String?
+  expDate    DateTime
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  voidedAt   DateTime?
+  voidReason String?
+
+  @@index([shopId, expDate])
+}
+
+model Withdrawal {
+  id         String    @id @default(cuid())
+  shopId     String
+  shop       Shop      @relation(fields: [shopId], references: [id])
+  mode       PayMode
+  amount     Decimal   @db.Decimal(12, 2)
+  note       String?
+  wDate      DateTime
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  voidedAt   DateTime?
+  voidReason String?
+
+  @@index([shopId, wDate])
+}
+
+// Immutable financial audit trail — every write to money tables logs here
+model AuditLog {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  entityType  String   // "Sale" | "MaterialExpense" | "ShopExpense" | "MiscExpense" | "Withdrawal"
+  entityId    String
+  action      String   // "CREATE" | "VOID"
+  amount      Decimal  @db.Decimal(12, 2)
+  performedBy String
+  ipAddress   String
+  createdAt   DateTime @default(now())
+
+  @@index([shopId, createdAt])
+}

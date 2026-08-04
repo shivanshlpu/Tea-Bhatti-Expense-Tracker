@@ -36,7 +36,17 @@ async function main() {
     },
   });
 
-  console.log(`✅ Created official owner account: ${ownerName} (Mobile: ${mobile})`);
+  const user = await prisma.user.create({
+    data: {
+      shopId: shop.id,
+      role: 'OWNER',
+      mobile,
+      passwordHash,
+      isActive: true,
+    },
+  });
+
+  console.log(`✅ Created official owner account & user record: ${ownerName} (Mobile: ${mobile}, UserID: ${user.id})`);
   console.log('\n🎉 Clean setup completed successfully!');
   console.log('----------------------------------------------------');
   console.log(`Login Mobile:    ${mobile}`);

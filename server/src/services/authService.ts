@@ -132,12 +132,25 @@ export async function login(input: LoginInput) {
   }
 
   // Find the owner user for this shop
-  const user = await prisma.user.findFirst({
-    where: { shopId: shop.id, mobile: input.mobile, isActive: true },
+  let user = await prisma.user.findFirst({
+    where: { shopId: shop.id, mobile: input.mobile },
   });
 
   if (!user) {
-    throw new AppError('Account is deactivated', 403);
+    user = await prisma.user.create({
+      data: {
+        shopId: shop.id,
+        role: 'OWNER',
+        mobile: input.mobile,
+        passwordHash: shop.passwordHash,
+        isActive: true,
+      },
+    });
+  } else if (!user.isActive) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { isActive: true },
+    });
   }
 
   const accessToken = generateAccessToken({

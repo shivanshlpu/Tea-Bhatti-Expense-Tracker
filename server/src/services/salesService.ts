@@ -7,7 +7,6 @@ import type { CreateSaleInput, VoidReasonInput } from '@shop-finance/shared';
 
 /**
  * Create a new sale — within a Prisma transaction that also writes the audit log.
- * Never a separate afterthought.
  */
 export async function createSale(
   shopId: string,
@@ -46,18 +45,64 @@ export async function createSale(
 }
 
 /**
- * Void (soft-delete) a sale — requires a reason, never hard deletes.
- * CA rule: creates an audit trail entry for the void.
+ * Update an existing sale.
+ */
+export async function updateSale(
+  shopId: string,
+  userId: string,
+  saleId: string,
+  input: Partial<CreateSaleInput>,
+  req: Request
+) {
+  const existing = await prisma.sale.findFirst({
+    where: { id: saleId, shopId, voidedAt: null },
+  });
+
+  if (!existing) {
+    throw new AppError('Sale record not found', 404);
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const data: any = {};
+    if (input.type) data.type = input.type;
+    if (input.amount !== undefined) data.amount = new Decimal(input.amount.toString());
+    if (input.paymentMethod !== undefined) data.paymentMethod = input.paymentMethod || null;
+    if (input.note !== undefined) data.note = input.note || null;
+    if (input.saleDate) data.saleDate = new Date(input.saleDate);
+
+    const sale = await tx.sale.update({
+      where: { id: saleId },
+      data,
+    });
+
+    await writeAuditLog({
+      shopId,
+      entityType: 'Sale',
+      entityId: saleId,
+      action: 'UPDATE',
+      amount: sale.amount,
+      performedBy: userId,
+      req,
+      tx: tx as any,
+    });
+
+    return sale;
+  });
+
+  return updated;
+}
+
+/**
+ * Void/Delete a sale entry.
  */
 export async function voidSale(
   shopId: string,
   userId: string,
   saleId: string,
-  input: VoidReasonInput,
+  input: VoidReasonInput | { reason?: string },
   req: Request
 ) {
   const sale = await prisma.$transaction(async (tx) => {
-    // Verify the sale exists and belongs to this shop
     const existing = await tx.sale.findFirst({
       where: { id: saleId, shopId },
     });
@@ -74,7 +119,7 @@ export async function voidSale(
       where: { id: saleId },
       data: {
         voidedAt: new Date(),
-        voidReason: input.reason,
+        voidReason: input.reason || 'Deleted by user',
       },
     });
 
@@ -96,8 +141,7 @@ export async function voidSale(
 }
 
 /**
- * List sales for a shop with optional filters.
- * Always scoped to shopId from the authenticated session.
+ * List active (non-voided) sales for a shop.
  */
 export async function listSales(
   shopId: string,
@@ -107,7 +151,7 @@ export async function listSales(
     type?: 'CASH' | 'ONLINE';
   }
 ) {
-  const where: any = { shopId };
+  const where: any = { shopId, voidedAt: null };
 
   if (filters.from || filters.to) {
     where.saleDate = {};

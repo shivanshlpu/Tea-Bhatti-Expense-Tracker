@@ -19,7 +19,7 @@ export interface AuditLogParams {
   shopId: string;
   entityType: string;
   entityId: string;
-  action: 'CREATE' | 'VOID';
+  action: 'CREATE' | 'VOID' | 'UPDATE';
   amount: Decimal | number;
   performedBy: string;
   req: Request;

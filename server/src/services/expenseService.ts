@@ -48,11 +48,52 @@ export async function createMaterialExpense(
   });
 }
 
+export async function updateMaterialExpense(
+  shopId: string,
+  userId: string,
+  expenseId: string,
+  input: Partial<CreateMaterialExpenseInput>,
+  req: Request
+) {
+  const existing = await prisma.materialExpense.findFirst({
+    where: { id: expenseId, shopId, voidedAt: null },
+  });
+
+  if (!existing) throw new AppError('Material expense not found', 404);
+
+  return prisma.$transaction(async (tx) => {
+    const data: any = {};
+    if (input.category) data.category = input.category;
+    if (input.amount !== undefined) data.amount = new Decimal(input.amount.toString());
+    if (input.mode) data.mode = input.mode;
+    if (input.note !== undefined) data.note = input.note || null;
+    if (input.expDate) data.expDate = new Date(input.expDate);
+
+    const updated = await tx.materialExpense.update({
+      where: { id: expenseId },
+      data,
+    });
+
+    await writeAuditLog({
+      shopId,
+      entityType: 'MaterialExpense',
+      entityId: expenseId,
+      action: 'UPDATE',
+      amount: updated.amount,
+      performedBy: userId,
+      req,
+      tx: tx as any,
+    });
+
+    return updated;
+  });
+}
+
 export async function voidMaterialExpense(
   shopId: string,
   userId: string,
   expenseId: string,
-  input: VoidReasonInput,
+  input: VoidReasonInput | { reason?: string },
   req: Request
 ) {
   return prisma.$transaction(async (tx) => {
@@ -65,7 +106,7 @@ export async function voidMaterialExpense(
 
     const voided = await tx.materialExpense.update({
       where: { id: expenseId },
-      data: { voidedAt: new Date(), voidReason: input.reason },
+      data: { voidedAt: new Date(), voidReason: input.reason || 'User deleted expense' },
     });
 
     await writeAuditLog({
@@ -87,7 +128,7 @@ export async function listMaterialExpenses(
   shopId: string,
   filters: { from?: string; to?: string; category?: string }
 ) {
-  const where: any = { shopId };
+  const where: any = { shopId, voidedAt: null };
 
   if (filters.from || filters.to) {
     where.expDate = {};
@@ -150,11 +191,53 @@ export async function createShopExpense(
   });
 }
 
+export async function updateShopExpense(
+  shopId: string,
+  userId: string,
+  expenseId: string,
+  input: Partial<CreateShopExpenseInput>,
+  req: Request
+) {
+  const existing = await prisma.shopExpense.findFirst({
+    where: { id: expenseId, shopId, voidedAt: null },
+  });
+
+  if (!existing) throw new AppError('Shop expense not found', 404);
+
+  return prisma.$transaction(async (tx) => {
+    const data: any = {};
+    if (input.category) data.category = input.category;
+    if (input.amount !== undefined) data.amount = new Decimal(input.amount.toString());
+    if (input.mode) data.mode = input.mode;
+    if (input.note !== undefined) data.note = input.note || null;
+    if (input.expDate) data.expDate = new Date(input.expDate);
+    if (input.isRecurring !== undefined) data.isRecurring = input.isRecurring;
+
+    const updated = await tx.shopExpense.update({
+      where: { id: expenseId },
+      data,
+    });
+
+    await writeAuditLog({
+      shopId,
+      entityType: 'ShopExpense',
+      entityId: expenseId,
+      action: 'UPDATE',
+      amount: updated.amount,
+      performedBy: userId,
+      req,
+      tx: tx as any,
+    });
+
+    return updated;
+  });
+}
+
 export async function voidShopExpense(
   shopId: string,
   userId: string,
   expenseId: string,
-  input: VoidReasonInput,
+  input: VoidReasonInput | { reason?: string },
   req: Request
 ) {
   return prisma.$transaction(async (tx) => {
@@ -167,7 +250,7 @@ export async function voidShopExpense(
 
     const voided = await tx.shopExpense.update({
       where: { id: expenseId },
-      data: { voidedAt: new Date(), voidReason: input.reason },
+      data: { voidedAt: new Date(), voidReason: input.reason || 'User deleted expense' },
     });
 
     await writeAuditLog({
@@ -189,7 +272,7 @@ export async function listShopExpenses(
   shopId: string,
   filters: { from?: string; to?: string; category?: string }
 ) {
-  const where: any = { shopId };
+  const where: any = { shopId, voidedAt: null };
 
   if (filters.from || filters.to) {
     where.expDate = {};
@@ -251,11 +334,52 @@ export async function createMiscExpense(
   });
 }
 
+export async function updateMiscExpense(
+  shopId: string,
+  userId: string,
+  expenseId: string,
+  input: Partial<CreateMiscExpenseInput>,
+  req: Request
+) {
+  const existing = await prisma.miscExpense.findFirst({
+    where: { id: expenseId, shopId, voidedAt: null },
+  });
+
+  if (!existing) throw new AppError('Misc expense not found', 404);
+
+  return prisma.$transaction(async (tx) => {
+    const data: any = {};
+    if (input.name) data.name = input.name;
+    if (input.amount !== undefined) data.amount = new Decimal(input.amount.toString());
+    if (input.mode) data.mode = input.mode;
+    if (input.note !== undefined) data.note = input.note || null;
+    if (input.expDate) data.expDate = new Date(input.expDate);
+
+    const updated = await tx.miscExpense.update({
+      where: { id: expenseId },
+      data,
+    });
+
+    await writeAuditLog({
+      shopId,
+      entityType: 'MiscExpense',
+      entityId: expenseId,
+      action: 'UPDATE',
+      amount: updated.amount,
+      performedBy: userId,
+      req,
+      tx: tx as any,
+    });
+
+    return updated;
+  });
+}
+
 export async function voidMiscExpense(
   shopId: string,
   userId: string,
   expenseId: string,
-  input: VoidReasonInput,
+  input: VoidReasonInput | { reason?: string },
   req: Request
 ) {
   return prisma.$transaction(async (tx) => {
@@ -268,7 +392,7 @@ export async function voidMiscExpense(
 
     const voided = await tx.miscExpense.update({
       where: { id: expenseId },
-      data: { voidedAt: new Date(), voidReason: input.reason },
+      data: { voidedAt: new Date(), voidReason: input.reason || 'User deleted expense' },
     });
 
     await writeAuditLog({
@@ -290,7 +414,7 @@ export async function listMiscExpenses(
   shopId: string,
   filters: { from?: string; to?: string }
 ) {
-  const where: any = { shopId };
+  const where: any = { shopId, voidedAt: null };
 
   if (filters.from || filters.to) {
     where.expDate = {};

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { CreateWithdrawalSchema, VoidReasonSchema, DateRangeQuerySchema } from '@shop-finance/shared';
 import * as withdrawalService from '../services/withdrawalService';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -42,16 +42,58 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * PATCH /api/withdrawals/:id/void
+ * PUT /api/withdrawals/:id
  */
-router.patch('/:id/void', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = VoidReasonSchema.parse(req.body);
+    const withdrawal = await withdrawalService.updateWithdrawal(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      req.body,
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...withdrawal, amount: withdrawal.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/withdrawals/:id
+ */
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const withdrawal = await withdrawalService.voidWithdrawal(
       req.user!.shopId,
       req.user!.userId,
       req.params.id as string,
-      input,
+      { reason: req.body?.reason || 'User deleted withdrawal' },
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...withdrawal, amount: withdrawal.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/withdrawals/:id/void
+ */
+router.patch('/:id/void', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = VoidReasonSchema.partial().parse(req.body || {});
+    const withdrawal = await withdrawalService.voidWithdrawal(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      { reason: input.reason || 'User voided withdrawal' },
       req
     );
     res.json({

@@ -127,6 +127,12 @@ export const salesApi = {
   create: (body: any) =>
     apiFetch('/sales', { method: 'POST', body: JSON.stringify(body) }),
 
+  update: (id: string, body: any) =>
+    apiFetch(`/sales/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  delete: (id: string) =>
+    apiFetch(`/sales/${id}`, { method: 'DELETE' }),
+
   list: (params?: { from?: string; to?: string; type?: string }) => {
     const query = new URLSearchParams();
     if (params?.from) query.set('from', params.from);
@@ -144,6 +150,10 @@ export const expenseApi = {
   material: {
     create: (body: any) =>
       apiFetch('/expenses/material', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: any) =>
+      apiFetch(`/expenses/material/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      apiFetch(`/expenses/material/${id}`, { method: 'DELETE' }),
     list: (params?: { from?: string; to?: string; category?: string }) => {
       const query = new URLSearchParams();
       if (params?.from) query.set('from', params.from);
@@ -157,6 +167,10 @@ export const expenseApi = {
   shop: {
     create: (body: any) =>
       apiFetch('/expenses/shop', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: any) =>
+      apiFetch(`/expenses/shop/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      apiFetch(`/expenses/shop/${id}`, { method: 'DELETE' }),
     list: (params?: { from?: string; to?: string; category?: string }) => {
       const query = new URLSearchParams();
       if (params?.from) query.set('from', params.from);
@@ -170,6 +184,10 @@ export const expenseApi = {
   misc: {
     create: (body: any) =>
       apiFetch('/expenses/misc', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: string, body: any) =>
+      apiFetch(`/expenses/misc/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      apiFetch(`/expenses/misc/${id}`, { method: 'DELETE' }),
     list: (params?: { from?: string; to?: string }) => {
       const query = new URLSearchParams();
       if (params?.from) query.set('from', params.from);
@@ -185,6 +203,10 @@ export const expenseApi = {
 export const withdrawalApi = {
   create: (body: any) =>
     apiFetch('/withdrawals', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: any) =>
+    apiFetch(`/withdrawals/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (id: string) =>
+    apiFetch(`/withdrawals/${id}`, { method: 'DELETE' }),
   list: (params?: { from?: string; to?: string }) => {
     const query = new URLSearchParams();
     if (params?.from) query.set('from', params.from);

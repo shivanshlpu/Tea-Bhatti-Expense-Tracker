@@ -21,7 +21,6 @@ function ExpensesShop() {
     isRecurring: false,
   });
 
-  // Filter & Sort State (default to 'all' so all entries show by default)
   const [filterMode, setFilterMode] = useState<'today' | 'date' | 'range' | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [dateRange, setDateRange] = useState({ from: todayStr, to: todayStr });
@@ -29,10 +28,31 @@ function ExpensesShop() {
   const [sortField, setSortField] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const [voidModal, setVoidModal] = useState<{ open: boolean; expenseId: string; reason: string }>({
+  // Edit Modal State
+  const [editModal, setEditModal] = useState<{
+    open: boolean;
+    id: string;
+    category: string;
+    amount: string;
+    mode: 'CASH' | 'ONLINE';
+    note: string;
+    expDate: string;
+    isRecurring: boolean;
+  }>({
+    open: false,
+    id: '',
+    category: 'Rent',
+    amount: '',
+    mode: 'ONLINE',
+    note: '',
+    expDate: todayStr,
+    isRecurring: false,
+  });
+
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; expenseId: string }>({
     open: false,
     expenseId: '',
-    reason: '',
   });
 
   const queryParams = (() => {
@@ -78,17 +98,29 @@ function ExpensesShop() {
     },
   });
 
-  const voidMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      expenseApi.shop.void(id, { reason }),
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => expenseApi.shop.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopExpenses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      addToast('success', 'Expense voided');
-      setVoidModal({ open: false, expenseId: '', reason: '' });
+      addToast('success', 'Shop expense updated');
+      setEditModal({ ...editModal, open: false });
     },
     onError: (err: any) => {
-      addToast('error', err.message || 'Failed to void expense');
+      addToast('error', err.message || 'Failed to update expense');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => expenseApi.shop.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopExpenses'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      addToast('success', 'Shop expense deleted');
+      setDeleteModal({ open: false, expenseId: '' });
+    },
+    onError: (err: any) => {
+      addToast('error', err.message || 'Failed to delete expense');
     },
   });
 
@@ -112,6 +144,26 @@ function ExpensesShop() {
       note: form.note || undefined,
       expDate: dateObj.toISOString(),
       isRecurring: form.isRecurring,
+    });
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModal.amount || parseFloat(editModal.amount) <= 0) {
+      addToast('warning', 'Please enter a valid amount');
+      return;
+    }
+
+    updateMutation.mutate({
+      id: editModal.id,
+      data: {
+        category: editModal.category,
+        amount: parseFloat(editModal.amount),
+        mode: editModal.mode,
+        note: editModal.note || null,
+        expDate: new Date(editModal.expDate).toISOString(),
+        isRecurring: editModal.isRecurring,
+      },
     });
   };
 
@@ -261,84 +313,36 @@ function ExpensesShop() {
             <div style={{ background: 'var(--color-bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Filter Date:</span>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${filterMode === 'today' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilterMode('today')}
-                >
-                  ⚡ Today Only
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${filterMode === 'date' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilterMode('date')}
-                >
-                  📅 By Specific Date
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${filterMode === 'range' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilterMode('range')}
-                >
-                  🗓️ Date Range
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn-sm ${filterMode === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFilterMode('all')}
-                >
-                  ♾️ All History
-                </button>
+                <button type="button" className={`btn btn-sm ${filterMode === 'today' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterMode('today')}>⚡ Today Only</button>
+                <button type="button" className={`btn btn-sm ${filterMode === 'date' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterMode('date')}>📅 By Specific Date</button>
+                <button type="button" className={`btn btn-sm ${filterMode === 'range' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterMode('range')}>🗓️ Date Range</button>
+                <button type="button" className={`btn btn-sm ${filterMode === 'all' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterMode('all')}>♾️ All History</button>
               </div>
 
-              {/* Conditional Inputs */}
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 {filterMode === 'date' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.8rem' }}>Date:</span>
-                    <input
-                      type="date"
-                      className="input"
-                      style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                    />
+                    <input type="date" className="input" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
                   </div>
                 )}
 
                 {filterMode === 'range' && (
-                  <>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.8rem' }}>From:</span>
-                      <input
-                        type="date"
-                        className="input"
-                        style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
-                        value={dateRange.from}
-                        onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-                      />
+                      <input type="date" className="input" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} value={dateRange.from} onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })} />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.8rem' }}>To:</span>
-                      <input
-                        type="date"
-                        className="input"
-                        style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
-                        value={dateRange.to}
-                        onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-                      />
+                      <input type="date" className="input" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} value={dateRange.to} onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })} />
                     </div>
-                  </>
+                  </div>
                 )}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
                   <span style={{ fontSize: '0.8rem' }}>Category:</span>
-                  <select
-                    className="input select"
-                    style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                  >
+                  <select className="input select" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.85rem' }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                     <option value="ALL">All Categories</option>
                     {SHOP_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -362,30 +366,21 @@ function ExpensesShop() {
               <table>
                 <thead>
                   <tr>
-                    <th
-                      onClick={() => toggleSort('date')}
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      title="Click to sort by date"
-                    >
+                    <th onClick={() => toggleSort('date')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                       Date {sortField === 'date' ? (sortOrder === 'desc' ? '🔽' : '🔼') : '↕️'}
                     </th>
                     <th>Category</th>
                     <th>Mode</th>
                     <th>Note</th>
-                    <th
-                      data-type="money"
-                      onClick={() => toggleSort('amount')}
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      title="Click to sort by amount"
-                    >
+                    <th data-type="money" onClick={() => toggleSort('amount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                       Amount {sortField === 'amount' ? (sortOrder === 'desc' ? '🔽' : '🔼') : '↕️'}
                     </th>
-                    <th>Action</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedList.map((item: any) => (
-                    <tr key={item.id} style={item.voidedAt ? { opacity: 0.5, background: 'var(--color-bg-secondary)' } : {}}>
+                    <tr key={item.id}>
                       <td>{formatDate(item.expDate)}</td>
                       <td style={{ fontWeight: 600 }}>
                         {item.category}
@@ -396,25 +391,39 @@ function ExpensesShop() {
                           {item.mode}
                         </span>
                       </td>
-                      <td>
-                        {item.note || '—'}
-                        {item.voidedAt && <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}>Voided: {item.voidReason}</div>}
-                      </td>
-                      <td data-type="money" style={{ textDecoration: item.voidedAt ? 'line-through' : 'none' }}>
-                        {formatCurrency(item.amount)}
-                      </td>
-                      <td>
-                        {!item.voidedAt ? (
+                      <td>{item.note || '—'}</td>
+                      <td data-type="money">{formatCurrency(item.amount)}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
                           <button
-                            className="btn btn-ghost btn-sm"
-                            style={{ color: 'var(--color-danger)' }}
-                            onClick={() => setVoidModal({ open: true, expenseId: item.id, reason: '' })}
+                            type="button"
+                            className="btn btn-secondary btn-xs"
+                            title="Edit Entry"
+                            onClick={() =>
+                              setEditModal({
+                                open: true,
+                                id: item.id,
+                                category: item.category,
+                                amount: item.amount.toString(),
+                                mode: item.mode,
+                                note: item.note || '',
+                                expDate: new Date(item.expDate).toISOString().slice(0, 10),
+                                isRecurring: !!item.isRecurring,
+                              })
+                            }
                           >
-                            Void
+                            ✏️ Edit
                           </button>
-                        ) : (
-                          <span className="badge badge--voided">Voided</span>
-                        )}
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-xs"
+                            style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                            title="Delete Entry"
+                            onClick={() => setDeleteModal({ open: true, expenseId: item.id })}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -425,33 +434,79 @@ function ExpensesShop() {
         </div>
       </div>
 
-      {voidModal.open && (
+      {/* Edit Modal */}
+      {editModal.open && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal__header">
-              <h3 className="modal__title">Void Shop Expense</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => setVoidModal({ open: false, expenseId: '', reason: '' })}>✕</button>
+              <h3 className="modal__title">✏️ Edit Shop Expense</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditModal({ ...editModal, open: false })}>✕</button>
+            </div>
+            <form onSubmit={handleUpdate}>
+              <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="input-group">
+                  <label className="input-label">Category</label>
+                  <select className="input select" value={editModal.category} onChange={(e) => setEditModal({ ...editModal, category: e.target.value })}>
+                    {SHOP_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Payment Mode</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" className={`btn ${editModal.mode === 'CASH' ? 'btn-primary' : 'btn-secondary'} w-full`} onClick={() => setEditModal({ ...editModal, mode: 'CASH' })}>💵 Cash</button>
+                    <button type="button" className={`btn ${editModal.mode === 'ONLINE' ? 'btn-primary' : 'btn-secondary'} w-full`} onClick={() => setEditModal({ ...editModal, mode: 'ONLINE' })}>💳 Online</button>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Amount (₹)</label>
+                  <input type="number" step="0.01" min="0.01" className="input money" value={editModal.amount} onChange={(e) => setEditModal({ ...editModal, amount: e.target.value })} required />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Expense Date</label>
+                  <input type="date" className="input" value={editModal.expDate} onChange={(e) => setEditModal({ ...editModal, expDate: e.target.value })} required />
+                </div>
+
+                <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="checkbox" id="editIsRecurring" checked={editModal.isRecurring} onChange={(e) => setEditModal({ ...editModal, isRecurring: e.target.checked })} />
+                  <label htmlFor="editIsRecurring" style={{ fontSize: '0.875rem', cursor: 'pointer' }}>Monthly recurring expense</label>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Note</label>
+                  <input type="text" className="input" value={editModal.note} onChange={(e) => setEditModal({ ...editModal, note: e.target.value })} />
+                </div>
+              </div>
+              <div className="modal__footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setEditModal({ ...editModal, open: false })}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? <span className="spinner" /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal__header">
+              <h3 className="modal__title">🗑️ Delete Shop Expense</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDeleteModal({ open: false, expenseId: '' })}>✕</button>
             </div>
             <div className="modal__body">
-              <div className="input-group">
-                <label className="input-label">Reason for Voiding</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Reason..."
-                  value={voidModal.reason}
-                  onChange={(e) => setVoidModal({ ...voidModal, reason: e.target.value })}
-                />
-              </div>
+              <p style={{ fontSize: '0.9rem' }}>Are you sure you want to delete this shop expense entry?</p>
             </div>
             <div className="modal__footer">
-              <button className="btn btn-secondary" onClick={() => setVoidModal({ open: false, expenseId: '', reason: '' })}>Cancel</button>
-              <button
-                className="btn btn-danger"
-                disabled={!voidModal.reason || voidMutation.isPending}
-                onClick={() => voidMutation.mutate({ id: voidModal.expenseId, reason: voidModal.reason })}
-              >
-                Confirm Void
+              <button type="button" className="btn btn-secondary" onClick={() => setDeleteModal({ open: false, expenseId: '' })}>Cancel</button>
+              <button type="button" className="btn btn-danger" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(deleteModal.expenseId)}>
+                {deleteMutation.isPending ? <span className="spinner" /> : 'Delete Entry'}
               </button>
             </div>
           </div>

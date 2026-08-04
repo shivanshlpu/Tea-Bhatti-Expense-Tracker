@@ -1,11 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { CreateSaleSchema, VoidReasonSchema, SalesQuerySchema } from '@shop-finance/shared';
 import * as salesService from '../services/salesService';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
 /**
@@ -33,7 +32,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * GET /api/sales?from=&to=&type=
- * List sales with optional filters.
+ * List sales.
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -47,17 +46,59 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * PATCH /api/sales/:id/void
- * Void (soft-delete) a sale. Requires OWNER role.
+ * PUT /api/sales/:id
+ * Edit/Update a sale entry.
  */
-router.patch('/:id/void', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = VoidReasonSchema.parse(req.body);
+    const sale = await salesService.updateSale(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      req.body,
+      req
+    );
+
+    res.json({
+      success: true,
+      data: { ...sale, amount: sale.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/sales/:id or PATCH /api/sales/:id/void
+ * Delete/Void a sale entry.
+ */
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const sale = await salesService.voidSale(
       req.user!.shopId,
       req.user!.userId,
       req.params.id as string,
-      input,
+      { reason: req.body?.reason || 'User deleted sale entry' },
+      req
+    );
+
+    res.json({
+      success: true,
+      data: { ...sale, amount: sale.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/:id/void', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = VoidReasonSchema.partial().parse(req.body || {});
+    const sale = await salesService.voidSale(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      { reason: input.reason || 'User voided sale entry' },
       req
     );
 

@@ -7,11 +7,10 @@ import {
   ExpenseQuerySchema,
 } from '@shop-finance/shared';
 import * as expenseService from '../services/expenseService';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
 // ────────────────────────────────────────
@@ -46,14 +45,50 @@ router.get('/material', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
-router.patch('/material/:id/void', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/material/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = VoidReasonSchema.parse(req.body);
+    const expense = await expenseService.updateMaterialExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      req.body,
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/material/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const expense = await expenseService.voidMaterialExpense(
       req.user!.shopId,
       req.user!.userId,
       req.params.id as string,
-      input,
+      { reason: req.body?.reason || 'User deleted expense' },
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/material/:id/void', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = VoidReasonSchema.partial().parse(req.body || {});
+    const expense = await expenseService.voidMaterialExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      { reason: input.reason || 'User voided expense' },
       req
     );
     res.json({
@@ -97,14 +132,50 @@ router.get('/shop', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-router.patch('/shop/:id/void', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/shop/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = VoidReasonSchema.parse(req.body);
+    const expense = await expenseService.updateShopExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      req.body,
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/shop/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const expense = await expenseService.voidShopExpense(
       req.user!.shopId,
       req.user!.userId,
       req.params.id as string,
-      input,
+      { reason: req.body?.reason || 'User deleted expense' },
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/shop/:id/void', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = VoidReasonSchema.partial().parse(req.body || {});
+    const expense = await expenseService.voidShopExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      { reason: input.reason || 'User voided expense' },
       req
     );
     res.json({
@@ -148,14 +219,50 @@ router.get('/misc', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-router.patch('/misc/:id/void', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+router.put('/misc/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const input = VoidReasonSchema.parse(req.body);
+    const expense = await expenseService.updateMiscExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      req.body,
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/misc/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
     const expense = await expenseService.voidMiscExpense(
       req.user!.shopId,
       req.user!.userId,
       req.params.id as string,
-      input,
+      { reason: req.body?.reason || 'User deleted expense' },
+      req
+    );
+    res.json({
+      success: true,
+      data: { ...expense, amount: expense.amount.toString() },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/misc/:id/void', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = VoidReasonSchema.partial().parse(req.body || {});
+    const expense = await expenseService.voidMiscExpense(
+      req.user!.shopId,
+      req.user!.userId,
+      req.params.id as string,
+      { reason: input.reason || 'User voided expense' },
       req
     );
     res.json({

@@ -42,13 +42,56 @@ export async function createWithdrawal(
 }
 
 /**
- * Void a withdrawal — soft-void with mandatory reason.
+ * Update an existing withdrawal.
+ */
+export async function updateWithdrawal(
+  shopId: string,
+  userId: string,
+  withdrawalId: string,
+  input: Partial<CreateWithdrawalInput>,
+  req: Request
+) {
+  const existing = await prisma.withdrawal.findFirst({
+    where: { id: withdrawalId, shopId, voidedAt: null },
+  });
+
+  if (!existing) throw new AppError('Withdrawal not found', 404);
+
+  return prisma.$transaction(async (tx) => {
+    const data: any = {};
+    if (input.amount !== undefined) data.amount = new Decimal(input.amount.toString());
+    if (input.mode) data.mode = input.mode;
+    if (input.note !== undefined) data.note = input.note || null;
+    if (input.wDate) data.wDate = new Date(input.wDate);
+
+    const updated = await tx.withdrawal.update({
+      where: { id: withdrawalId },
+      data,
+    });
+
+    await writeAuditLog({
+      shopId,
+      entityType: 'Withdrawal',
+      entityId: withdrawalId,
+      action: 'UPDATE',
+      amount: updated.amount,
+      performedBy: userId,
+      req,
+      tx: tx as any,
+    });
+
+    return updated;
+  });
+}
+
+/**
+ * Void a withdrawal — soft-void with reason.
  */
 export async function voidWithdrawal(
   shopId: string,
   userId: string,
   withdrawalId: string,
-  input: VoidReasonInput,
+  input: VoidReasonInput | { reason?: string },
   req: Request
 ) {
   return prisma.$transaction(async (tx) => {
@@ -61,7 +104,7 @@ export async function voidWithdrawal(
 
     const voided = await tx.withdrawal.update({
       where: { id: withdrawalId },
-      data: { voidedAt: new Date(), voidReason: input.reason },
+      data: { voidedAt: new Date(), voidReason: input.reason || 'User deleted withdrawal' },
     });
 
     await writeAuditLog({
@@ -80,13 +123,13 @@ export async function voidWithdrawal(
 }
 
 /**
- * List withdrawals for a shop with optional date range.
+ * List active withdrawals for a shop with optional date range.
  */
 export async function listWithdrawals(
   shopId: string,
   filters: { from?: string; to?: string }
 ) {
-  const where: any = { shopId };
+  const where: any = { shopId, voidedAt: null };
 
   if (filters.from || filters.to) {
     where.wDate = {};

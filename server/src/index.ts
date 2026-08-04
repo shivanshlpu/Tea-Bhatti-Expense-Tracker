@@ -53,10 +53,32 @@ app.use(
       return callback(null, true);
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'HEAD'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   })
 );
+
+// ── Health Check Endpoints (Exempt from rate limiting & CSRF for UptimeRobot / Render monitoring) ──
+const healthHandler = (_req: express.Request, res: express.Response) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    service: 'Shop Finance API',
+    environment: env.NODE_ENV || 'development',
+  });
+};
+
+app.get('/health', healthHandler);
+app.head('/health', healthHandler);
+app.get('/api/health', healthHandler);
+app.head('/api/health', healthHandler);
+app.get('/ping', healthHandler);
+app.head('/ping', healthHandler);
+
+app.get('/', (_req, res) => {
+  res.status(200).json({ name: 'Shop Finance API', status: 'running', uptime: process.uptime() });
+});
 
 // ── Body parsing with size limits ──
 app.use(express.json({ limit: '2mb' }));
@@ -88,15 +110,6 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/assistant', assistantRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.get('/', (_req, res) => {
-  res.json({ name: 'Shop Finance API', status: 'running' });
-});
-
 // 404 handler
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });
@@ -110,6 +123,21 @@ const PORT = Number(process.env.PORT) || env.PORT || 10000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT} in ${env.NODE_ENV} mode`);
   logger.info(`🚀 Server running on port ${PORT} in ${env.NODE_ENV} mode`);
+
+  // Render Self Keep-Alive Ping (pings /api/health every 14 minutes if RENDER_EXTERNAL_URL or BACKEND_URL is set)
+  const renderUrl = process.env.RENDER_EXTERNAL_URL || process.env.BACKEND_URL || process.env.SERVER_URL;
+  if (renderUrl) {
+    const PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
+    setInterval(async () => {
+      try {
+        const pingTarget = `${renderUrl.replace(/\/$/, '')}/api/health`;
+        await fetch(pingTarget);
+        logger.info(`Self keep-alive ping sent to ${pingTarget}`);
+      } catch (err) {
+        logger.warn({ err }, 'Self keep-alive ping failed');
+      }
+    }, PING_INTERVAL);
+  }
 });
 
 server.on('error', (err) => {

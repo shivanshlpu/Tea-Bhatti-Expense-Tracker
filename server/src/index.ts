@@ -19,47 +19,47 @@ import reportsRoutes from './routes/reports';
 import settingsRoutes from './routes/settings';
 import assistantRoutes from './routes/assistant';
 
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled Rejection:', reason);
+});
+
 const app = express();
 
-// ── Security Headers (Section 9.5) ──
+// ── Security Headers ──
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: ["'self'"],
-      },
-    },
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-    hsts: { maxAge: 31536000, includeSubDomains: true },
   })
 );
 
-// ── CORS — locked to frontend origin only, no wildcard (Section 9.5) ──
+// ── CORS — Allow configuration or wildcard fallback for production ──
+const corsOrigin = env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN;
+
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   })
 );
 
-// ── Body parsing with size limits (Section 9.5) ──
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// ── Body parsing with size limits ──
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// ── Cookie parsing (for refresh tokens + CSRF) ──
+// ── Cookie parsing ──
 app.use(cookieParser());
 
-// ── Global rate limiting (Section 9.5) ──
+// ── Global rate limiting ──
 app.use(generalRateLimiter);
 
-// ── CSRF protection (Section 9.5) ──
+// ── CSRF protection ──
 app.use(csrfProtection);
 
 // ── Request logging ──
@@ -68,7 +68,7 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ── Routes (Section 5 REST API Contract) ──
+// ── Routes ──
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/expenses', expenseRoutes);
@@ -84,19 +84,27 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ── 404 handler ──
+app.get('/', (_req, res) => {
+  res.json({ name: 'Shop Finance API', status: 'running' });
+});
+
+// 404 handler
 app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });
 });
 
-// ── Global error handler ──
+// Global error handler
 app.use(errorHandler);
 
-// ── Start server ──
-const PORT = env.PORT;
-app.listen(PORT, () => {
+// Start server listening on 0.0.0.0 for Cloud Hosting
+const PORT = Number(process.env.PORT) || env.PORT || 10000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT} in ${env.NODE_ENV} mode`);
   logger.info(`🚀 Server running on port ${PORT} in ${env.NODE_ENV} mode`);
-  logger.info(`📡 CORS origin: ${env.CORS_ORIGIN}`);
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server Listen Error:', err);
 });
 
 export default app;

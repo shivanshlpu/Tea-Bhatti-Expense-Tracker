@@ -1,4 +1,5 @@
 import puppeteer, { Browser } from 'puppeteer';
+import PDFDocument from 'pdfkit';
 import { ReportExportData } from './excelGenerator';
 
 function fmt(val: any): string {
@@ -21,14 +22,33 @@ async function getBrowser(): Promise<Browser> {
   if (cachedBrowser && cachedBrowser.connected) {
     return cachedBrowser;
   }
+
+  if (cachedBrowser) {
+    try {
+      await cachedBrowser.close();
+    } catch {}
+    cachedBrowser = null;
+  }
+
   cachedBrowser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-default-browser-check',
+    ],
   });
+
   return cachedBrowser;
 }
 
-export async function generatePdfReport(data: ReportExportData): Promise<Buffer> {
+/**
+ * Primary PDF Generation Engine using Puppeteer
+ */
+async function generatePuppeteerPdf(data: ReportExportData): Promise<Buffer> {
   const s = data.summary;
   const fromStr = formatDateDDMMYYYY(data.from);
   const toStr = formatDateDDMMYYYY(data.to);
@@ -319,7 +339,7 @@ export async function generatePdfReport(data: ReportExportData): Promise<Buffer>
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 });
     const pdfBuffer = await page.pdf({
       format: 'A4',
       margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
@@ -327,6 +347,116 @@ export async function generatePdfReport(data: ReportExportData): Promise<Buffer>
     });
     return Buffer.from(pdfBuffer);
   } finally {
-    await page.close();
+    await page.close().catch(() => {});
+  }
+}
+
+/**
+ * Bulletproof Zero-Dependency PDF Engine Fallback using PDFKit
+ */
+function generatePdfKitReport(data: ReportExportData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers: Buffer[] = [];
+
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      const s = data.summary;
+      const fromStr = formatDateDDMMYYYY(data.from);
+      const toStr = formatDateDDMMYYYY(data.to);
+
+      // Header
+      doc.fillColor('#0f766e').fontSize(20).text(data.shopName, { underline: false });
+      doc.fontSize(10).fillColor('#64748b').text(`Owner: ${data.ownerName}`);
+      doc.moveDown(0.5);
+
+      doc.fontSize(14).fillColor('#0f766e').text('Official Financial Report');
+      doc.fontSize(9).fillColor('#64748b').text(`Period: ${fromStr} to ${toStr} | Generated: ${formatDateDDMMYYYY(new Date())}`);
+      doc.moveDown(1);
+
+      // Financial Summary Box
+      doc.fontSize(12).fillColor('#0f766e').text('Financial Executive Summary');
+      doc.moveDown(0.3);
+
+      doc.fontSize(10).fillColor('#1e293b');
+      doc.text(`Total Sales Revenue: INR ${fmt(s.totalSales.toNumber())} (Cash: INR ${fmt(s.totalCashSales.toNumber())} | Online: INR ${fmt(s.totalOnlineSales.toNumber())})`);
+      doc.text(`Gross Profit: INR ${fmt(s.grossProfit.toNumber())} (Material Costs: INR ${fmt(s.totalMaterialExpenses.toNumber())})`);
+      doc.text(`Net Profit / (Loss): INR ${fmt(s.netProfit.toNumber())} (Total Expenses: INR ${fmt(s.totalExpenses.toNumber())})`);
+      doc.text(`Closing Cash Balance: INR ${fmt(s.cashBalance.toNumber())}`);
+      doc.text(`Closing Bank Balance: INR ${fmt(s.onlineBalance.toNumber())}`);
+      doc.text(`Total Cash Available: INR ${fmt(s.remainingBusinessBalance.toNumber())}`);
+      doc.moveDown(1.5);
+
+      // Function to render table
+      const renderSection = (title: string, items: any[], headers: string[], rowMapper: (item: any) => string[]) => {
+        if (items.length === 0) return;
+        doc.fontSize(11).fillColor('#0f766e').text(`${title} (${items.length})`);
+        doc.moveDown(0.3);
+
+        doc.fontSize(9).fillColor('#475569');
+        items.slice(0, 50).forEach((item) => {
+          const rowText = rowMapper(item).join(' | ');
+          doc.text(`• ${rowText}`);
+        });
+        doc.moveDown(1);
+      };
+
+      renderSection('Sales Records', data.records.sales, [], (r) => [
+        formatDateDDMMYYYY(r.saleDate),
+        r.type,
+        r.paymentMethod || 'Cash',
+        `INR ${fmt(r.amount)}`,
+        r.note || '',
+      ]);
+
+      renderSection('Material Expenses (COGS)', data.records.materialExpenses, [], (r) => [
+        formatDateDDMMYYYY(r.expDate),
+        r.category,
+        r.mode,
+        `INR ${fmt(r.amount)}`,
+        r.note || '',
+      ]);
+
+      renderSection('Shop Operational Expenses', data.records.shopExpenses, [], (r) => [
+        formatDateDDMMYYYY(r.expDate),
+        r.category,
+        r.mode,
+        `INR ${fmt(r.amount)}`,
+        r.note || '',
+      ]);
+
+      renderSection('Miscellaneous Expenses', data.records.miscExpenses, [], (r) => [
+        formatDateDDMMYYYY(r.expDate),
+        r.name,
+        r.mode,
+        `INR ${fmt(r.amount)}`,
+        r.note || '',
+      ]);
+
+      renderSection('Owner Drawings', data.records.withdrawals, [], (r) => [
+        formatDateDDMMYYYY(r.wDate),
+        r.mode,
+        `INR ${fmt(r.amount)}`,
+        r.note || '',
+      ]);
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/**
+ * Main Export Function with Automatic Fallback
+ */
+export async function generatePdfReport(data: ReportExportData): Promise<Buffer> {
+  try {
+    return await generatePuppeteerPdf(data);
+  } catch (err) {
+    console.warn('⚠️ Puppeteer PDF generation failed. Using PDFKit fallback engine:', err);
+    return await generatePdfKitReport(data);
   }
 }

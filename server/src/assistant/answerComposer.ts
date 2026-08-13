@@ -91,7 +91,7 @@ export async function composeAnswer(
     case 'CATEGORY_EXPENSE': {
       const cat = slots.category || 'Rent';
       const breakdown = await getExpenseBreakdown(shopId, slots.dateRange);
-      const found = breakdown.shop.find((s) => s.category.toLowerCase() === cat.toLowerCase());
+      const found = breakdown.shop.find((s: any) => s.category.toLowerCase() === cat.toLowerCase());
       const amt = found ? found.amount : '0.00';
       return {
         answer: `For ${label.toLowerCase()}, total expenses logged under "${cat}" are ₹${fmt(amt)}.`,

@@ -45,7 +45,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       orderBy: { date: 'desc' },
     });
 
-    const formatted = loans.map((l) => ({
+    const formatted = loans.map((l: any) => ({
       id: l.id,
       date: l.date.toISOString().split('T')[0],
       type: l.type,

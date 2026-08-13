@@ -93,14 +93,14 @@ router.get('/balance', async (req: Request, res: Response, next: NextFunction) =
           totalSales: Number(sales.totalSales),
           note: sales.note,
         } : { cashSales: 0, upiSales: 0, cardSales: 0, totalSales: 0, note: '' },
-        expenses: expenses.map(e => ({
+        expenses: expenses.map((e: any) => ({
           id: e.id,
           category: e.category,
           amount: Number(e.amount),
           paymentMode: e.paymentMode,
           note: e.note,
         })),
-        drawings: drawings.map(d => ({
+        drawings: drawings.map((d: any) => ({
           id: d.id,
           amount: Number(d.amount),
           paymentMode: d.paymentMode,

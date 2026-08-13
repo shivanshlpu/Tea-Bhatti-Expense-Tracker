@@ -339,12 +339,12 @@ export async function getExpenseBreakdown(shopId: string, range: DateRange) {
     amount: amount.toFixed(2),
   }));
 
-  const shop = shopByCategory.map((g) => ({
+  const shop = shopByCategory.map((g: any) => ({
     category: g.category,
     amount: sumOrZero(g._sum.amount).toFixed(2),
   }));
 
-  const misc = miscByName.map((g) => ({
+  const misc = miscByName.map((g: any) => ({
     name: g.name,
     amount: sumOrZero(g._sum.amount).toFixed(2),
   }));

@@ -199,11 +199,46 @@ function Settings() {
           {/* Header Banner */}
           <div className="card" style={{ background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-hover) 100%)', borderLeft: '4px solid var(--color-primary)' }}>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: 'var(--color-primary)' }}>
-              📖 Background Accounting Formulas & Mathematical Proof
+              📖 Background Accounting Formulas & Cash Flow Logic
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              Below are all 11 accounting formulas applied in the background across Tea Bhatti Cafe. Use the interactive live calculator at the bottom to test numbers with step-by-step mathematical proof.
+              Below are all 11 accounting formulas and real-time cash/bank drawer tracking logic applied across Tea Bhatti Cafe.
             </p>
+          </div>
+
+          {/* Real-Life Opening & Closing Cash Flow Example Card */}
+          <div className="card" style={{ borderLeft: '4px solid var(--color-success)', background: 'var(--color-surface)' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--color-success)' }}>
+              💡 Real-World Example: How Opening, Spending, Sales & Closing Work
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.875rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                <strong>1. Opening State (Day Start):</strong><br />
+                • Opening Cash Drawer = <strong>₹100</strong><br />
+                • Opening Bank Account = <strong>₹100</strong><br />
+                • Total Opening Funds = <strong>₹200</strong>
+              </div>
+
+              <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                <strong>2. Daily Activity & Transactions:</strong><br />
+                • 🛒 Market Supplies Expense: Spent <strong>₹50 Online</strong> $\rightarrow$ Bank drops from ₹100 to <strong>₹50</strong><br />
+                • 💰 Customer Sale Received: Collected <strong>₹200 Online</strong> $\rightarrow$ Bank increases from ₹50 to <strong>₹250</strong><br />
+                • 💵 Cash Activity: Spent <strong>₹0 Cash</strong> $\rightarrow$ Cash remains <strong>₹100</strong>
+              </div>
+
+              <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                <strong>3. Today's Closing Balances:</strong><br />
+                • Closing Bank Account = ₹100 (Opening) − ₹50 (Online Exp) + ₹200 (Online Sale) = <strong style={{ color: 'var(--color-primary)' }}>₹250</strong><br />
+                • Closing Cash Drawer = ₹100 (Opening) − ₹0 (Cash Exp) + ₹0 (Cash Sale) = <strong style={{ color: 'var(--color-success)' }}>₹100</strong><br />
+                • Total Cash Available = ₹250 + ₹100 = <strong style={{ color: 'var(--color-primary)', fontSize: '1rem' }}>₹350</strong>
+              </div>
+
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-success)', color: 'var(--color-text)' }}>
+                🔄 <strong>Automatic Continuous Carry Forward to Tomorrow:</strong><br />
+                Tomorrow automatically opens with <strong>₹250 Bank</strong> and <strong>₹100 Cash</strong> (₹350 Total). From ₹350, any new cash expenses reduce Cash, any online expenses reduce Bank, and any new sales add to Cash or Bank continuously!
+              </div>
+            </div>
           </div>
 
           {/* Grid of 11 Formulas */}

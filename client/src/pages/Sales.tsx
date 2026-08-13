@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { salesApi } from '../api/client';
+import { salesApi, settingsApi } from '../api/client';
 import { formatCurrency, formatDate } from '../lib/financeFormatters';
 import { useShopStore } from '../stores/useShopStore';
 
@@ -50,6 +50,34 @@ function Sales() {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; saleId: string }>({
     open: false,
     saleId: '',
+  });
+
+  // Opening Balance Modal State
+  const [openingModal, setOpeningModal] = useState<{ open: boolean; cash: string; bank: string }>({
+    open: false,
+    cash: '',
+    bank: '',
+  });
+
+  const { data: openingData } = useQuery({
+    queryKey: ['openingBalance', todayStr],
+    queryFn: () => settingsApi.getOpeningBalance(todayStr),
+  });
+
+  const openingInfo = openingData?.data || { openingCash: 0, openingBank: 0, totalOpening: 0 };
+
+  const updateOpeningMutation = useMutation({
+    mutationFn: (data: { openingCash: number; openingBank: number }) =>
+      settingsApi.updateOpeningBalance({ ...data, date: todayStr }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['openingBalance'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      addToast('success', 'Opening balance updated successfully');
+      setOpeningModal({ open: false, cash: '', bank: '' });
+    },
+    onError: (err: any) => {
+      addToast('error', err.message || 'Failed to update opening balance');
+    },
   });
 
   const queryParams = (() => {
@@ -195,10 +223,33 @@ function Sales() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
+      <div className="page-header" style={{ flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Sales Management</h1>
           <p className="page-subtitle">Log & track daily cash & online sales deposits</p>
+        </div>
+
+        {/* Opening Balance Card */}
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', padding: '0.5rem 1rem', borderRadius: '12px' }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Day Opening Balance</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+              💵 Cash: <span style={{ color: 'var(--color-success)' }}>{formatCurrency(openingInfo.openingCash)}</span> | 💳 Bank: <span style={{ color: 'var(--color-primary)' }}>{formatCurrency(openingInfo.openingBank)}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn--sm btn--outline"
+            onClick={() =>
+              setOpeningModal({
+                open: true,
+                cash: openingInfo.openingCash ? openingInfo.openingCash.toString() : '',
+                bank: openingInfo.openingBank ? openingInfo.openingBank.toString() : '',
+              })
+            }
+          >
+            ⚙️ Set Opening
+          </button>
         </div>
       </div>
 
@@ -488,6 +539,66 @@ function Sales() {
                 {deleteMutation.isPending ? <span className="spinner" /> : 'Delete Entry'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Opening Balance Modal */}
+      {openingModal.open && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 450 }}>
+            <div className="modal__header">
+              <h3 className="modal__title">💵 Set Day Opening Balance</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpeningModal({ open: false, cash: '', bank: '' })}>✕</button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateOpeningMutation.mutate({
+                  openingCash: parseFloat(openingModal.cash || '0'),
+                  openingBank: parseFloat(openingModal.bank || '0'),
+                });
+              }}
+            >
+              <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                  Enter your starting physical cash in drawer and digital bank/UPI account balance for today:
+                </p>
+                <div className="input-group">
+                  <label className="input-label">Opening Cash Drawer (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input money"
+                    placeholder="0.00"
+                    value={openingModal.cash}
+                    onChange={(e) => setOpeningModal({ ...openingModal, cash: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Opening Bank / UPI Account (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input money"
+                    placeholder="0.00"
+                    value={openingModal.bank}
+                    onChange={(e) => setOpeningModal({ ...openingModal, bank: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="modal__footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setOpeningModal({ open: false, cash: '', bank: '' })}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={updateOpeningMutation.isPending}>
+                  {updateOpeningMutation.isPending ? <span className="spinner" /> : 'Save Opening Balance'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

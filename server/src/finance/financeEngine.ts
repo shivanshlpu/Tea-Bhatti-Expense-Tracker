@@ -210,34 +210,25 @@ export async function computeFinanceSummary(
   const pendingLoanTaken = sumOrZero(pendingTakenAgg._sum.pendingAmount);
   const pendingLoanGiven = sumOrZero(pendingGivenAgg._sum.pendingAmount);
 
-  // ── Cumulative Balances ──
+  // ── Cumulative Balances & Live Drawer Math ──
   const latestBalance = await prisma.dailyBalance.findFirst({
     where: { shopId, date: cumulativeFilter },
     orderBy: { date: 'desc' },
   });
 
-  let cashBalance = new Decimal(0);
-  let onlineBalance = new Decimal(0);
+  let openingCashVal = new Decimal(0);
+  let openingBankVal = new Decimal(0);
 
   if (latestBalance) {
-    cashBalance = new Decimal(latestBalance.closingCash.toString());
-    onlineBalance = new Decimal(latestBalance.closingBank.toString());
-  } else {
-    const [cumCashSalesAgg, cumOnlineSalesAgg, cumCashWithdAgg, cumOnlineWithdAgg] = await Promise.all([
-      prisma.sale.aggregate({ where: { ...baseWhere, type: 'CASH', saleDate: cumulativeFilter }, _sum: { amount: true } }),
-      prisma.sale.aggregate({ where: { ...baseWhere, type: 'ONLINE', saleDate: cumulativeFilter }, _sum: { amount: true } }),
-      prisma.withdrawal.aggregate({ where: { ...baseWhere, mode: 'CASH', wDate: cumulativeFilter }, _sum: { amount: true } }),
-      prisma.withdrawal.aggregate({ where: { ...baseWhere, mode: 'ONLINE', wDate: cumulativeFilter }, _sum: { amount: true } }),
-    ]);
-
-    const cumCashSales = sumOrZero(cumCashSalesAgg._sum.amount);
-    const cumOnlineSales = sumOrZero(cumOnlineSalesAgg._sum.amount);
-    const cumCashWithd = sumOrZero(cumCashWithdAgg._sum.amount);
-    const cumOnlineWithd = sumOrZero(cumOnlineWithdAgg._sum.amount);
-
-    cashBalance = cumCashSales.minus(totalMaterialExpenses).minus(cumCashWithd);
-    onlineBalance = cumOnlineSales.minus(totalShopExpenses).minus(cumOnlineWithd);
+    openingCashVal = new Decimal(latestBalance.openingCash.toString());
+    openingBankVal = new Decimal(latestBalance.openingBank.toString());
   }
+
+  const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
+  const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
+
+  const cashBalance = openingCashVal.plus(totalCashSales).minus(totalCashExpenses).minus(cashWithdrawals);
+  const onlineBalance = openingBankVal.plus(totalOnlineSales).minus(totalOnlineExpenses).minus(onlineWithdrawals);
 
   const grossProfit = totalSales.minus(totalMaterialExpenses);
   const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses);
@@ -250,8 +241,6 @@ export async function computeFinanceSummary(
     ? totalExpenses.dividedBy(totalSales).times(100)
     : new Decimal(0);
 
-  const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
-  const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
   const remainingBusinessBalance = cashBalance.plus(onlineBalance);
 
   return {

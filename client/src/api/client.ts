@@ -358,6 +358,12 @@ export const settingsApi = {
   getShop: () => apiFetch('/settings/shop'),
   updateShop: (body: any) =>
     apiFetch('/settings/shop', { method: 'PATCH', body: JSON.stringify(body) }),
+  getOpeningBalance: (date?: string) => {
+    const query = date ? `?date=${date}` : '';
+    return apiFetch(`/settings/opening-balance${query}`);
+  },
+  updateOpeningBalance: (body: { openingCash: number; openingBank: number; date?: string }) =>
+    apiFetch('/settings/opening-balance', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 // ── Daily Entry API ──
@@ -382,5 +388,7 @@ export const loansApi = {
     apiFetch('/loans', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: any) =>
     apiFetch(`/loans/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: (id: string) =>
+    apiFetch(`/loans/${id}`, { method: 'DELETE' }),
 };
 

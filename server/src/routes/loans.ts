@@ -176,4 +176,33 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
+/**
+ * DELETE /api/loans/:id
+ */
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const shopId = req.user!.shopId;
+    const loanId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    const existing = await prisma.loanEntry.findFirst({
+      where: { id: loanId, shopId },
+    });
+
+    if (!existing) {
+      throw new AppError('Loan record not found', 404);
+    }
+
+    await prisma.loanEntry.delete({
+      where: { id: loanId },
+    });
+
+    res.json({
+      success: true,
+      message: 'Loan record deleted successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

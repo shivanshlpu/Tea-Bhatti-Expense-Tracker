@@ -93,9 +93,6 @@ function Layout() {
           <NavLink to="/" end className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
             <span>📊</span> Dashboard
           </NavLink>
-          <NavLink to="/daily-entry" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
-            <span>⚡</span> Daily Entry
-          </NavLink>
 
           <div className="sidebar__section-title">Transactions</div>
           <NavLink to="/sales" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
@@ -159,10 +156,6 @@ function Layout() {
           <span>📊</span>
           <span>Home</span>
         </NavLink>
-        <NavLink to="/daily-entry" className={`mobile-bottom-nav ${location.pathname === '/daily-entry' ? 'active' : ''}`}>
-          <span>⚡</span>
-          <span>Daily</span>
-        </NavLink>
         <NavLink to="/sales" className={`mobile-bottom-nav ${location.pathname.startsWith('/sales') ? 'active' : ''}`}>
           <span>💰</span>
           <span>Sales</span>
@@ -174,6 +167,10 @@ function Layout() {
         <NavLink to="/reports" className={`mobile-bottom-nav ${location.pathname.startsWith('/reports') ? 'active' : ''}`}>
           <span>📄</span>
           <span>Reports</span>
+        </NavLink>
+        <NavLink to="/loans" className={`mobile-bottom-nav ${location.pathname.startsWith('/loans') ? 'active' : ''}`}>
+          <span>🤝</span>
+          <span>Loans</span>
         </NavLink>
       </nav>
 

@@ -159,7 +159,6 @@ function Dashboard() {
   ];
 
   const shortcuts = [
-    { path: '/daily-entry', name: '⚡ Daily Entry (3-5 min)', icon: '⚡' },
     { path: '/', name: 'All Overview', icon: '🍽️' },
     { path: '/sales', name: 'Sales & Income', icon: '💵' },
     { path: '/expenses/material', name: 'Material Expenses', icon: '🧱' },

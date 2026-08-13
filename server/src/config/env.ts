@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().optional().default('postgresql://neondb_owner:npg_w7oGXmOWPaM8@ep-wild-river-aztiqw26.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().optional().default('redis://localhost:6379'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('dev-jwt-secret-change-in-production-at-least-32-chars-long-ok'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters').default('dev-jwt-refresh-secret-change-in-production-at-least-32'),

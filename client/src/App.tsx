@@ -7,13 +7,15 @@ import { useEffect } from 'react';
 // Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import DailyEntry from './pages/DailyEntry';
+import Loans from './pages/Loans';
+import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import ExpensesMaterial from './pages/ExpensesMaterial';
 import ExpensesShop from './pages/ExpensesShop';
 import ExpensesMisc from './pages/ExpensesMisc';
 import Withdrawals from './pages/Withdrawals';
 import Analytics from './pages/Analytics';
-import Reports from './pages/Reports';
 import Assistant from './pages/Assistant';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
@@ -21,10 +23,10 @@ import Layout from './components/Layout';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes instant cache
+      staleTime: 5 * 60 * 1000,
       gcTime: 15 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false, // Prevent laggy background re-fetches
+      refetchOnWindowFocus: false,
       refetchOnReconnect: 'always',
     },
   },
@@ -39,7 +41,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const theme = useShopStore((s) => s.theme);
 
-  // Apply theme on mount
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -52,7 +53,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Navigate to="/login" replace />} />
 
-          {/* Protected routes with sidebar layout */}
+          {/* Protected routes */}
           <Route
             path="/"
             element={
@@ -62,13 +63,15 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="daily-entry" element={<DailyEntry />} />
+            <Route path="loans" element={<Loans />} />
+            <Route path="reports" element={<Reports />} />
             <Route path="sales" element={<Sales />} />
             <Route path="expenses/material" element={<ExpensesMaterial />} />
             <Route path="expenses/shop" element={<ExpensesShop />} />
             <Route path="expenses/misc" element={<ExpensesMisc />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="analytics" element={<Analytics />} />
-            <Route path="reports" element={<Reports />} />
             <Route path="assistant" element={<Assistant />} />
             <Route path="settings" element={<Settings />} />
           </Route>

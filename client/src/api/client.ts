@@ -359,3 +359,28 @@ export const settingsApi = {
   updateShop: (body: any) =>
     apiFetch('/settings/shop', { method: 'PATCH', body: JSON.stringify(body) }),
 };
+
+// ── Daily Entry API ──
+export const dailyEntryApi = {
+  getBalance: (date?: string) => {
+    const query = date ? `?date=${date}` : '';
+    return apiFetch(`/daily-entry/balance${query}`);
+  },
+  save: (body: any) =>
+    apiFetch('/daily-entry/save', { method: 'POST', body: JSON.stringify(body) }),
+};
+
+// ── Loans API ──
+export const loansApi = {
+  list: (params?: { status?: string; type?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.type) query.set('type', params.type);
+    return apiFetch(`/loans?${query.toString()}`);
+  },
+  create: (body: any) =>
+    apiFetch('/loans', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: any) =>
+    apiFetch(`/loans/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+};
+

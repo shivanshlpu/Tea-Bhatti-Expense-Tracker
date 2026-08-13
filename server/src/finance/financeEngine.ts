@@ -1,20 +1,7 @@
 import { Decimal } from 'decimal.js';
 import prisma from '../config/prisma';
 
-// Configure Decimal.js for financial precision
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
-
-/**
- * financeEngine.ts — THE SINGLE SOURCE OF TRUTH for all financial formulas.
- * Section 4 of prompt.md: "implement ONCE in a shared financeEngine module,
- * never recompute inline elsewhere."
- *
- * Every function is date-range parameterized so the same engine powers:
- * - "today's dashboard"
- * - "custom report"
- * - "AI assistant answers"
- * One function, many callers, zero formula drift.
- */
 
 export interface DateRange {
   from: Date;
@@ -29,15 +16,22 @@ export interface FinanceSummary {
   totalShopExpenses: Decimal;
   totalMiscExpenses: Decimal;
   totalExpenses: Decimal;
+  fixedExpenses: Decimal;
   grossProfit: Decimal;
   netProfit: Decimal;
   cashWithdrawals: Decimal;
   onlineWithdrawals: Decimal;
   totalWithdrawals: Decimal;
+  totalDrawings: Decimal;
+  loanTaken: Decimal;
+  loanGiven: Decimal;
+  pendingLoanTaken: Decimal;
+  pendingLoanGiven: Decimal;
+  profitMarginPercent: Decimal;
+  expenseRatioPercent: Decimal;
   remainingBusinessBalance: Decimal;
   cashBalance: Decimal;
   onlineBalance: Decimal;
-  // Expense breakdowns by mode
   cashMaterialExpenses: Decimal;
   onlineMaterialExpenses: Decimal;
   cashShopExpenses: Decimal;
@@ -48,18 +42,10 @@ export interface FinanceSummary {
   totalOnlineExpenses: Decimal;
 }
 
-/**
- * Helper: sum Decimal values from Prisma aggregate results.
- * Prisma returns { _sum: { amount: Decimal | null } }
- */
 function sumOrZero(val: Decimal | null | undefined): Decimal {
   return val ? new Decimal(val.toString()) : new Decimal(0);
 }
 
-/**
- * Core engine: computes ALL financial metrics for a shop within a date range.
- * This is THE function that dashboard, reports, analytics, and the assistant call.
- */
 export async function computeFinanceSummary(
   shopId: string,
   range: DateRange
@@ -67,10 +53,10 @@ export async function computeFinanceSummary(
   const { from, to } = range;
   const dateFilter = { gte: from, lte: to };
   const cumulativeFilter = { lte: to };
-  const baseWhere = { shopId, voidedAt: null }; // Always exclude voided records
+  const baseWhere = { shopId, voidedAt: null };
 
   // ── Period Sales ──
-  const [cashSalesAgg, onlineSalesAgg] = await Promise.all([
+  const [cashSalesAgg, onlineSalesAgg, salesEntryAgg] = await Promise.all([
     prisma.sale.aggregate({
       where: { ...baseWhere, type: 'CASH', saleDate: dateFilter },
       _sum: { amount: true },
@@ -79,14 +65,28 @@ export async function computeFinanceSummary(
       where: { ...baseWhere, type: 'ONLINE', saleDate: dateFilter },
       _sum: { amount: true },
     }),
+    prisma.salesEntry.aggregate({
+      where: { shopId, date: dateFilter },
+      _sum: { cashSales: true, upiSales: true, cardSales: true, totalSales: true },
+    }),
   ]);
 
-  const totalCashSales = sumOrZero(cashSalesAgg._sum.amount);
-  const totalOnlineSales = sumOrZero(onlineSalesAgg._sum.amount);
+  const legCashSales = sumOrZero(cashSalesAgg._sum.amount);
+  const legOnlineSales = sumOrZero(onlineSalesAgg._sum.amount);
+  const entryCashSales = sumOrZero(salesEntryAgg._sum.cashSales);
+  const entryOnlineSales = sumOrZero(salesEntryAgg._sum.upiSales).plus(sumOrZero(salesEntryAgg._sum.cardSales));
+
+  const totalCashSales = legCashSales.plus(entryCashSales);
+  const totalOnlineSales = legOnlineSales.plus(entryOnlineSales);
   const totalSales = totalCashSales.plus(totalOnlineSales);
 
-  // ── Period Material Expenses (by mode) ──
-  const [cashMatExpAgg, onlineMatExpAgg] = await Promise.all([
+  // ── Period Expenses ──
+  const [
+    cashMatExpAgg, onlineMatExpAgg,
+    cashShopExpAgg, onlineShopExpAgg,
+    cashMiscExpAgg, onlineMiscExpAgg,
+    expenseEntryAgg
+  ] = await Promise.all([
     prisma.materialExpense.aggregate({
       where: { ...baseWhere, mode: 'CASH', expDate: dateFilter },
       _sum: { amount: true },
@@ -95,46 +95,70 @@ export async function computeFinanceSummary(
       where: { ...baseWhere, mode: 'ONLINE', expDate: dateFilter },
       _sum: { amount: true },
     }),
+    prisma.shopExpense.aggregate({
+      where: { ...baseWhere, mode: 'CASH', expDate: dateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.shopExpense.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', expDate: dateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.miscExpense.aggregate({
+      where: { ...baseWhere, mode: 'CASH', expDate: dateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.miscExpense.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', expDate: dateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.expenseEntry.findMany({
+      where: { shopId, date: dateFilter },
+    }),
   ]);
 
-  const cashMaterialExpenses = sumOrZero(cashMatExpAgg._sum.amount);
-  const onlineMaterialExpenses = sumOrZero(onlineMatExpAgg._sum.amount);
+  let entryCashMat = new Decimal(0);
+  let entryOnlineMat = new Decimal(0);
+  let entryCashShop = new Decimal(0);
+  let entryOnlineShop = new Decimal(0);
+  let entryCashMisc = new Decimal(0);
+  let entryOnlineMisc = new Decimal(0);
+  let entryFixedExp = new Decimal(0);
+
+  for (const exp of expenseEntryAgg) {
+    const amt = new Decimal(exp.amount.toString());
+    const isCash = exp.paymentMode === 'Cash';
+    const cat = exp.category;
+
+    if (cat === 'Material Purchase') {
+      if (isCash) entryCashMat = entryCashMat.plus(amt);
+      else entryOnlineMat = entryOnlineMat.plus(amt);
+    } else if (cat === 'Shop Expense' || cat === 'Fixed Expense') {
+      if (isCash) entryCashShop = entryCashShop.plus(amt);
+      else entryOnlineShop = entryOnlineShop.plus(amt);
+      if (cat === 'Fixed Expense') entryFixedExp = entryFixedExp.plus(amt);
+    } else {
+      if (isCash) entryCashMisc = entryCashMisc.plus(amt);
+      else entryOnlineMisc = entryOnlineMisc.plus(amt);
+    }
+  }
+
+  const cashMaterialExpenses = sumOrZero(cashMatExpAgg._sum.amount).plus(entryCashMat);
+  const onlineMaterialExpenses = sumOrZero(onlineMatExpAgg._sum.amount).plus(entryOnlineMat);
   const totalMaterialExpenses = cashMaterialExpenses.plus(onlineMaterialExpenses);
 
-  // ── Period Shop Expenses (by mode) ──
-  const [cashShopExpAgg, onlineShopExpAgg] = await Promise.all([
-    prisma.shopExpense.aggregate({
-      where: { ...baseWhere, mode: 'CASH', expDate: dateFilter },
-      _sum: { amount: true },
-    }),
-    prisma.shopExpense.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', expDate: dateFilter },
-      _sum: { amount: true },
-    }),
-  ]);
-
-  const cashShopExpenses = sumOrZero(cashShopExpAgg._sum.amount);
-  const onlineShopExpenses = sumOrZero(onlineShopExpAgg._sum.amount);
+  const cashShopExpenses = sumOrZero(cashShopExpAgg._sum.amount).plus(entryCashShop);
+  const onlineShopExpenses = sumOrZero(onlineShopExpAgg._sum.amount).plus(entryOnlineShop);
   const totalShopExpenses = cashShopExpenses.plus(onlineShopExpenses);
 
-  // ── Period Misc Expenses (by mode) ──
-  const [cashMiscExpAgg, onlineMiscExpAgg] = await Promise.all([
-    prisma.miscExpense.aggregate({
-      where: { ...baseWhere, mode: 'CASH', expDate: dateFilter },
-      _sum: { amount: true },
-    }),
-    prisma.miscExpense.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', expDate: dateFilter },
-      _sum: { amount: true },
-    }),
-  ]);
-
-  const cashMiscExpenses = sumOrZero(cashMiscExpAgg._sum.amount);
-  const onlineMiscExpenses = sumOrZero(onlineMiscExpAgg._sum.amount);
+  const cashMiscExpenses = sumOrZero(cashMiscExpAgg._sum.amount).plus(entryCashMisc);
+  const onlineMiscExpenses = sumOrZero(onlineMiscExpAgg._sum.amount).plus(entryOnlineMisc);
   const totalMiscExpenses = cashMiscExpenses.plus(onlineMiscExpenses);
 
-  // ── Period Withdrawals (by mode) ──
-  const [cashWithdAgg, onlineWithdAgg] = await Promise.all([
+  const fixedExpenses = totalShopExpenses.plus(entryFixedExp);
+  const totalExpenses = totalMaterialExpenses.plus(totalShopExpenses).plus(totalMiscExpenses);
+
+  // ── Period Withdrawals / Drawings ──
+  const [cashWithdAgg, onlineWithdAgg, drawingsEntryAgg] = await Promise.all([
     prisma.withdrawal.aggregate({
       where: { ...baseWhere, mode: 'CASH', wDate: dateFilter },
       _sum: { amount: true },
@@ -143,90 +167,92 @@ export async function computeFinanceSummary(
       where: { ...baseWhere, mode: 'ONLINE', wDate: dateFilter },
       _sum: { amount: true },
     }),
+    prisma.drawingsEntry.findMany({
+      where: { shopId, date: dateFilter },
+    }),
   ]);
 
-  const cashWithdrawals = sumOrZero(cashWithdAgg._sum.amount);
-  const onlineWithdrawals = sumOrZero(onlineWithdAgg._sum.amount);
+  let entryCashDrawings = new Decimal(0);
+  let entryOnlineDrawings = new Decimal(0);
+  for (const d of drawingsEntryAgg) {
+    const amt = new Decimal(d.amount.toString());
+    if (d.paymentMode === 'Cash') entryCashDrawings = entryCashDrawings.plus(amt);
+    else entryOnlineDrawings = entryOnlineDrawings.plus(amt);
+  }
+
+  const cashWithdrawals = sumOrZero(cashWithdAgg._sum.amount).plus(entryCashDrawings);
+  const onlineWithdrawals = sumOrZero(onlineWithdAgg._sum.amount).plus(entryOnlineDrawings);
   const totalWithdrawals = cashWithdrawals.plus(onlineWithdrawals);
+  const totalDrawings = totalWithdrawals;
 
-  // ── Cumulative Account Balances (Lifetime up to 'to' date) ──
-  const [
-    cumCashSalesAgg,
-    cumOnlineSalesAgg,
-    cumCashMatAgg,
-    cumOnlineMatAgg,
-    cumCashShopAgg,
-    cumOnlineShopAgg,
-    cumCashMiscAgg,
-    cumOnlineMiscAgg,
-    cumCashWithdAgg,
-    cumOnlineWithdAgg,
-  ] = await Promise.all([
-    prisma.sale.aggregate({
-      where: { ...baseWhere, type: 'CASH', saleDate: cumulativeFilter },
+  // ── Period Loans ──
+  const [loanTakenAgg, loanGivenAgg, pendingTakenAgg, pendingGivenAgg] = await Promise.all([
+    prisma.loanEntry.aggregate({
+      where: { shopId, type: 'TAKEN', date: dateFilter },
       _sum: { amount: true },
     }),
-    prisma.sale.aggregate({
-      where: { ...baseWhere, type: 'ONLINE', saleDate: cumulativeFilter },
+    prisma.loanEntry.aggregate({
+      where: { shopId, type: 'GIVEN', date: dateFilter },
       _sum: { amount: true },
     }),
-    prisma.materialExpense.aggregate({
-      where: { ...baseWhere, mode: 'CASH', expDate: cumulativeFilter },
-      _sum: { amount: true },
+    prisma.loanEntry.aggregate({
+      where: { shopId, type: 'TAKEN', status: 'PENDING' },
+      _sum: { pendingAmount: true },
     }),
-    prisma.materialExpense.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', expDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.shopExpense.aggregate({
-      where: { ...baseWhere, mode: 'CASH', expDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.shopExpense.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', expDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.miscExpense.aggregate({
-      where: { ...baseWhere, mode: 'CASH', expDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.miscExpense.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', expDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.withdrawal.aggregate({
-      where: { ...baseWhere, mode: 'CASH', wDate: cumulativeFilter },
-      _sum: { amount: true },
-    }),
-    prisma.withdrawal.aggregate({
-      where: { ...baseWhere, mode: 'ONLINE', wDate: cumulativeFilter },
-      _sum: { amount: true },
+    prisma.loanEntry.aggregate({
+      where: { shopId, type: 'GIVEN', status: 'PENDING' },
+      _sum: { pendingAmount: true },
     }),
   ]);
 
-  const cumCashSales = sumOrZero(cumCashSalesAgg._sum.amount);
-  const cumOnlineSales = sumOrZero(cumOnlineSalesAgg._sum.amount);
-  const cumCashExp = sumOrZero(cumCashMatAgg._sum.amount)
-    .plus(sumOrZero(cumCashShopAgg._sum.amount))
-    .plus(sumOrZero(cumCashMiscAgg._sum.amount));
-  const cumOnlineExp = sumOrZero(cumOnlineMatAgg._sum.amount)
-    .plus(sumOrZero(cumOnlineShopAgg._sum.amount))
-    .plus(sumOrZero(cumOnlineMiscAgg._sum.amount));
-  const cumCashWithd = sumOrZero(cumCashWithdAgg._sum.amount);
-  const cumOnlineWithd = sumOrZero(cumOnlineWithdAgg._sum.amount);
+  const loanTaken = sumOrZero(loanTakenAgg._sum.amount);
+  const loanGiven = sumOrZero(loanGivenAgg._sum.amount);
+  const pendingLoanTaken = sumOrZero(pendingTakenAgg._sum.pendingAmount);
+  const pendingLoanGiven = sumOrZero(pendingGivenAgg._sum.pendingAmount);
 
-  // Real-world Cash Drawer Balance and Bank Account Balance
-  const cashBalance = cumCashSales.minus(cumCashExp).minus(cumCashWithd);
-  const onlineBalance = cumOnlineSales.minus(cumOnlineExp).minus(cumOnlineWithd);
+  // ── Cumulative Balances ──
+  const latestBalance = await prisma.dailyBalance.findFirst({
+    where: { shopId, date: cumulativeFilter },
+    orderBy: { date: 'desc' },
+  });
 
-  // ── Derived Formulas for Period ──
-  const totalExpenses = totalMaterialExpenses.plus(totalShopExpenses).plus(totalMiscExpenses);
+  let cashBalance = new Decimal(0);
+  let onlineBalance = new Decimal(0);
+
+  if (latestBalance) {
+    cashBalance = new Decimal(latestBalance.closingCash.toString());
+    onlineBalance = new Decimal(latestBalance.closingBank.toString());
+  } else {
+    const [cumCashSalesAgg, cumOnlineSalesAgg, cumCashWithdAgg, cumOnlineWithdAgg] = await Promise.all([
+      prisma.sale.aggregate({ where: { ...baseWhere, type: 'CASH', saleDate: cumulativeFilter }, _sum: { amount: true } }),
+      prisma.sale.aggregate({ where: { ...baseWhere, type: 'ONLINE', saleDate: cumulativeFilter }, _sum: { amount: true } }),
+      prisma.withdrawal.aggregate({ where: { ...baseWhere, mode: 'CASH', wDate: cumulativeFilter }, _sum: { amount: true } }),
+      prisma.withdrawal.aggregate({ where: { ...baseWhere, mode: 'ONLINE', wDate: cumulativeFilter }, _sum: { amount: true } }),
+    ]);
+
+    const cumCashSales = sumOrZero(cumCashSalesAgg._sum.amount);
+    const cumOnlineSales = sumOrZero(cumOnlineSalesAgg._sum.amount);
+    const cumCashWithd = sumOrZero(cumCashWithdAgg._sum.amount);
+    const cumOnlineWithd = sumOrZero(cumOnlineWithdAgg._sum.amount);
+
+    cashBalance = cumCashSales.minus(totalMaterialExpenses).minus(cumCashWithd);
+    onlineBalance = cumOnlineSales.minus(totalShopExpenses).minus(cumOnlineWithd);
+  }
+
   const grossProfit = totalSales.minus(totalMaterialExpenses);
   const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses);
-  const remainingBusinessBalance = cashBalance.plus(onlineBalance);
+
+  const profitMarginPercent = totalSales.greaterThan(0)
+    ? netProfit.dividedBy(totalSales).times(100)
+    : new Decimal(0);
+
+  const expenseRatioPercent = totalSales.greaterThan(0)
+    ? totalExpenses.dividedBy(totalSales).times(100)
+    : new Decimal(0);
 
   const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
   const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
+  const remainingBusinessBalance = cashBalance.plus(onlineBalance);
 
   return {
     totalCashSales,
@@ -236,11 +262,19 @@ export async function computeFinanceSummary(
     totalShopExpenses,
     totalMiscExpenses,
     totalExpenses,
+    fixedExpenses,
     grossProfit,
     netProfit,
     cashWithdrawals,
     onlineWithdrawals,
     totalWithdrawals,
+    totalDrawings,
+    loanTaken,
+    loanGiven,
+    pendingLoanTaken,
+    pendingLoanGiven,
+    profitMarginPercent,
+    expenseRatioPercent,
     remainingBusinessBalance,
     cashBalance,
     onlineBalance,
@@ -255,13 +289,6 @@ export async function computeFinanceSummary(
   };
 }
 
-/**
- * Reconciliation invariant check (CA rule — Section 4):
- * Cash Balance + Online Balance === Remaining Business Balance
- *
- * If this fails, a mode (cash/online) was mis-tagged somewhere.
- * Surface as a hard error, not a silent rounding fix.
- */
 export function checkReconciliation(summary: FinanceSummary): {
   passes: boolean;
   cashPlusOnline: string;
@@ -279,16 +306,12 @@ export function checkReconciliation(summary: FinanceSummary): {
   };
 }
 
-/**
- * Compute per-category expense breakdown for a date range.
- * Used by analytics and the query assistant.
- */
 export async function getExpenseBreakdown(shopId: string, range: DateRange) {
   const { from, to } = range;
   const dateFilter = { gte: from, lte: to };
   const baseWhere = { shopId, voidedAt: null };
 
-  const [materialByCategory, shopByCategory, miscByName] = await Promise.all([
+  const [materialByCategory, shopByCategory, miscByName, expenseEntries] = await Promise.all([
     prisma.materialExpense.groupBy({
       by: ['category'],
       where: { ...baseWhere, expDate: dateFilter },
@@ -307,47 +330,46 @@ export async function getExpenseBreakdown(shopId: string, range: DateRange) {
       _sum: { amount: true },
       orderBy: { _sum: { amount: 'desc' } },
     }),
+    prisma.expenseEntry.findMany({
+      where: { shopId, date: dateFilter },
+    }),
   ]);
 
-  return {
-    material: materialByCategory.map((g) => ({
-      category: g.category,
-      amount: sumOrZero(g._sum.amount).toFixed(2),
-    })),
-    shop: shopByCategory.map((g) => ({
-      category: g.category,
-      amount: sumOrZero(g._sum.amount).toFixed(2),
-    })),
-    misc: miscByName.map((g) => ({
-      name: g.name,
-      amount: sumOrZero(g._sum.amount).toFixed(2),
-    })),
-  };
+  const catMap: Record<string, Decimal> = {};
+  for (const item of materialByCategory) {
+    catMap[item.category] = sumOrZero(item._sum.amount);
+  }
+  for (const exp of expenseEntries) {
+    const cat = exp.category;
+    const amt = new Decimal(exp.amount.toString());
+    catMap[cat] = (catMap[cat] || new Decimal(0)).plus(amt);
+  }
+
+  const material = Object.entries(catMap).map(([category, amount]) => ({
+    category,
+    amount: amount.toFixed(2),
+  }));
+
+  const shop = shopByCategory.map((g) => ({
+    category: g.category,
+    amount: sumOrZero(g._sum.amount).toFixed(2),
+  }));
+
+  const misc = miscByName.map((g) => ({
+    name: g.name,
+    amount: sumOrZero(g._sum.amount).toFixed(2),
+  }));
+
+  return { material, shop, misc };
 }
 
-/**
- * Get monthly profit data for trend analysis and comparison.
- * Returns an array of { month, year, netProfit, grossProfit, totalSales } sorted chronologically.
- */
 export async function getMonthlyProfitTrend(
   shopId: string,
   monthsBack: number = 12
-): Promise<Array<{
-  month: number;
-  year: number;
-  label: string;
-  totalSales: string;
-  totalMaterialExpenses: string;
-  totalShopExpenses: string;
-  totalMiscExpenses: string;
-  grossProfit: string;
-  netProfit: string;
-}>> {
+) {
   const now = new Date();
   const monthPromises = [];
-
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   for (let i = monthsBack - 1; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -372,13 +394,10 @@ export async function getMonthlyProfitTrend(
   return Promise.all(monthPromises);
 }
 
-/**
- * Get daily sales trend for charts.
- */
 export async function getDailySalesTrend(
   shopId: string,
   range: DateRange
-): Promise<Array<{ date: string; cashSales: string; onlineSales: string; totalSales: string }>> {
+) {
   const results = [];
   const current = new Date(range.from);
 
@@ -386,7 +405,7 @@ export async function getDailySalesTrend(
     const dayStart = new Date(current.getFullYear(), current.getMonth(), current.getDate());
     const dayEnd = new Date(current.getFullYear(), current.getMonth(), current.getDate(), 23, 59, 59, 999);
 
-    const [cashAgg, onlineAgg] = await Promise.all([
+    const [cashAgg, onlineAgg, entryAgg] = await Promise.all([
       prisma.sale.aggregate({
         where: { shopId, voidedAt: null, type: 'CASH', saleDate: { gte: dayStart, lte: dayEnd } },
         _sum: { amount: true },
@@ -395,10 +414,18 @@ export async function getDailySalesTrend(
         where: { shopId, voidedAt: null, type: 'ONLINE', saleDate: { gte: dayStart, lte: dayEnd } },
         _sum: { amount: true },
       }),
+      prisma.salesEntry.findFirst({
+        where: { shopId, date: dayStart },
+      }),
     ]);
 
-    const cash = sumOrZero(cashAgg._sum.amount);
-    const online = sumOrZero(onlineAgg._sum.amount);
+    let cash = sumOrZero(cashAgg._sum.amount);
+    let online = sumOrZero(onlineAgg._sum.amount);
+
+    if (entryAgg) {
+      cash = cash.plus(new Decimal(entryAgg.cashSales.toString()));
+      online = online.plus(new Decimal(entryAgg.upiSales.toString())).plus(new Decimal(entryAgg.cardSales.toString()));
+    }
 
     results.push({
       date: dayStart.toISOString().split('T')[0],
@@ -413,14 +440,12 @@ export async function getDailySalesTrend(
   return results;
 }
 
-/**
- * Serialize a FinanceSummary to plain JSON (string amounts for safe transit).
- * All amounts are formatted to 2 decimal places.
- */
 export function serializeSummary(summary: FinanceSummary): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(summary)) {
-    result[key] = (value as Decimal).toFixed(2);
+    if (value instanceof Decimal) {
+      result[key] = value.toFixed(2);
+    }
   }
   return result;
 }

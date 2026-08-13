@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '../api/client';
 import { useShopStore } from '../stores/useShopStore';
-import { formatCurrency } from '../lib/financeFormatters';
 
 function Settings() {
   const queryClient = useQueryClient();
@@ -18,17 +17,44 @@ function Settings() {
     currency: 'INR',
   });
 
-  // Interactive Simulator State for Settings
-  const [simSales, setSimSales] = useState<number>(10000);
-  const [simMaterial, setSimMaterial] = useState<number>(3000);
-  const [simShopExp, setSimShopExp] = useState<number>(2000);
-  const [simMiscExp, setSimMiscExp] = useState<number>(500);
-  const [simWithdrawals, setSimWithdrawals] = useState<number>(1500);
+  // Interactive Live Calculator State
+  const [calcOpeningCash, setCalcOpeningCash] = useState<number>(1000);
+  const [calcOpeningBank, setCalcOpeningBank] = useState<number>(5000);
 
-  const simGrossProfit = simSales - simMaterial;
-  const simTotalExp = simMaterial + simShopExp + simMiscExp;
-  const simNetProfit = simGrossProfit - simShopExp - simMiscExp;
-  const simRemainingBal = simNetProfit - simWithdrawals;
+  const [calcCashSales, setCalcCashSales] = useState<number>(6000);
+  const [calcUpiSales, setCalcUpiSales] = useState<number>(4000);
+  const [calcCardSales, setCalcCardSales] = useState<number>(0);
+
+  const [calcMaterialExp, setCalcMaterialExp] = useState<number>(2500);
+  const [calcShopExp, setCalcShopExp] = useState<number>(1500);
+  const [calcFixedExp, setCalcFixedExp] = useState<number>(1000);
+
+  const [calcCashDrawings, setCalcCashDrawings] = useState<number>(800);
+  const [calcUpiDrawings, setCalcUpiDrawings] = useState<number>(500);
+
+  const [calcLoanAmount, setCalcLoanAmount] = useState<number>(2000);
+  const [calcLoanReturned, setCalcLoanReturned] = useState<number>(500);
+
+  // Live Calculated Proofs
+  const calcTotalOpening = calcOpeningCash + calcOpeningBank;
+  const calcTotalSales = calcCashSales + calcUpiSales + calcCardSales;
+
+  const calcTotalBusinessExp = calcMaterialExp + calcShopExp;
+  const calcTotalAllExp = calcTotalBusinessExp + calcFixedExp;
+
+  const calcGrossProfit = calcTotalSales - calcMaterialExp;
+  const calcNetProfit = calcTotalSales - calcTotalAllExp;
+
+  const calcTotalDrawings = calcCashDrawings + calcUpiDrawings;
+
+  const calcProfitMargin = calcTotalSales > 0 ? (calcNetProfit / calcTotalSales) * 100 : 0;
+  const calcExpenseRatio = calcTotalSales > 0 ? (calcTotalAllExp / calcTotalSales) * 100 : 0;
+
+  const calcClosingCash = calcOpeningCash + calcCashSales - (calcMaterialExp * 0.6) - calcCashDrawings;
+  const calcClosingBank = calcOpeningBank + calcUpiSales + calcCardSales - (calcShopExp + calcFixedExp + calcMaterialExp * 0.4) - calcUpiDrawings;
+  const calcTotalClosing = calcClosingCash + calcClosingBank;
+
+  const calcPendingLoan = calcLoanAmount - calcLoanReturned;
 
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -62,38 +88,40 @@ function Settings() {
     updateMutation.mutate(form);
   };
 
+  const fmtCurrency = (val: number) => `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div className="page-container" style={{ paddingBottom: '3rem' }}>
+      <div className="page-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">Settings & Accounting Formulas</h1>
-          <p className="page-subtitle">Manage shop profile and review full accounting calculation formulas</p>
+          <h1 className="page-title">⚙️ Settings & Accounting Formulas</h1>
+          <p className="page-subtitle">Manage shop profile, theme preferences, and review full background accounting formulas</p>
         </div>
 
-        {/* Tab Selector */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-bg-secondary)', padding: '0.25rem', borderRadius: '0.5rem' }}>
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.35rem', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'profile' ? 'btn-primary' : 'btn-ghost'}`}
+            className={`btn btn--sm ${activeTab === 'profile' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('profile')}
           >
             ⚙️ Shop Profile
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeTab === 'formulas' ? 'btn-primary' : 'btn-ghost'}`}
+            className={`btn btn--sm ${activeTab === 'formulas' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('formulas')}
           >
-            🧮 Financial Calculation Formulas
+            🧮 Finance Calculator & Formulas
           </button>
         </div>
       </div>
 
       {activeTab === 'profile' ? (
-        <div style={{ maxWidth: 650 }}>
+        <div style={{ maxWidth: 650, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Profile Card */}
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Shop Profile</h3>
+          <div className="card">
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Shop Profile</h3>
             {isLoading ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}><span className="spinner" /></div>
             ) : (
@@ -141,8 +169,8 @@ function Settings() {
                   />
                 </div>
 
-                <button type="submit" className="btn btn-primary btn-lg" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? <span className="spinner" /> : 'Save Profile Changes'}
+                <button type="submit" className="btn btn--primary" disabled={updateMutation.isPending} style={{ marginTop: '0.5rem' }}>
+                  {updateMutation.isPending ? 'Saving...' : 'Save Profile Changes'}
                 </button>
               </form>
             )}
@@ -150,231 +178,345 @@ function Settings() {
 
           {/* Theme Card */}
           <div className="card">
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Theme Preference</h3>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Theme Preference</h3>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 600 }}>Active Theme</div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-muted)' }}>
+                <div style={{ fontWeight: 700 }}>Active Color Theme</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
                   {theme === 'light' ? 'Light mode (Default)' : 'Dark mode'}
                 </div>
               </div>
-              <button className="btn btn-secondary" onClick={toggleTheme}>
+              <button className="btn btn--outline" onClick={toggleTheme}>
                 {theme === 'light' ? '🌙 Switch to Dark' : '☀️ Switch to Light'}
               </button>
             </div>
           </div>
         </div>
       ) : (
-        /* Financial Calculation Formulas & Customer Transparency Tab */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="card" style={{ background: 'var(--color-bg-secondary)', borderLeft: '4px solid var(--color-primary)' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-primary)' }}>
-              📖 Accounting Calculation Formulas & Compliance Rules
+        /* Accounting Formulas & Live Calculator Tab */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          {/* Header Banner */}
+          <div className="card" style={{ background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-hover) 100%)', borderLeft: '4px solid var(--color-primary)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: 'var(--color-primary)' }}>
+              📖 Background Accounting Formulas & Mathematical Proof
             </h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-              This system uses strict standard accounting principles (Chartered Accountant audited formulas).
-              Below is the exact step-by-step mathematical logic used to calculate your sales, expenses, profits, and balances.
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Below are all 11 accounting formulas applied in the background across Tea Bhatti Cafe. Use the interactive live calculator at the bottom to test numbers with step-by-step mathematical proof.
             </p>
           </div>
 
-          {/* Formula Breakdown Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+          {/* Grid of 11 Formulas */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
             
-            {/* Formula 1 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f766e' }}>1. Total Sales Revenue</span>
-                <span className="badge badge--cash">Income</span>
+            {/* 1. Total Sales */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-success)' }}>1. Total Sales Revenue</span>
+                <span className="badge badge--success">Income</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Total Sales = Cash Sales + Online Sales
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Total Sales = Cash Sales + UPI Sales + Card Sales
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Includes all daily money collected at the counter in cash plus online payments (UPI, GPay, PhonePe, Paytm, Cards). Voided sales are excluded.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Aggregates counter cash, GPay/PhonePe UPI payments, and card swipes. Voided transactions are automatically excluded.
               </p>
             </div>
 
-            {/* Formula 2 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#b45309' }}>2. Material Costs (COGS)</span>
-                <span className="badge badge--voided">Direct Expense</span>
+            {/* 2. Gross Profit */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>2. Gross Profit</span>
+                <span className="badge badge--info">Margin</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Material Costs = Cash Mat Exp + Online Mat Exp
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Gross Profit = Total Sales − Material Purchase Exp
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Cost of Goods Sold (COGS): raw inventory used to produce items (e.g. Milk, Tea leaves, Coffee beans, Sugar, Paper cups).
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Measures trading profitability before subtracting shop fixed overheads (Rent, Electricity, Wages).
               </p>
             </div>
 
-            {/* Formula 3 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#2563eb' }}>3. Gross Profit</span>
-                <span className="badge badge--online">Profitability</span>
+            {/* 3. Fixed & Shop Expenses */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ef4444' }}>3. Fixed & Shop Expenses</span>
+                <span className="badge badge--warning">Overhead</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Gross Profit = Total Sales - Material Costs
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Fixed Exp = Shop Rent + Electricity + Staff Wages
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Measures trading efficiency before subtracting shop operating costs (Rent, Electricity, Salaries).
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Recurring overhead costs necessary to operate the cafe premises.
               </p>
             </div>
 
-            {/* Formula 4 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#dc2626' }}>4. Operating & Misc Expenses</span>
-                <span className="badge badge--voided">Overhead</span>
+            {/* 4. Net Business Profit */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>4. Net Business Profit</span>
+                <span className="badge badge--success">Net Bottom Line</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Total Expenses = Material + Shop + Misc Exp
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Net Profit = Total Sales − Business Exp − Fixed Exp
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Shop expenses (Rent, Electricity, Staff Salary, Loan EMI) plus Miscellaneous expenses (Gas cylinder, Maintenance).
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                💡 <strong>Key Rule</strong>: Personal drawings/withdrawals are strictly isolated and do <strong>NOT</strong> reduce Net Business Profit.
               </p>
             </div>
 
-            {/* Formula 5 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#16a34a' }}>5. Net Profit / (Loss)</span>
-                <span className="badge badge--cash">Final Profit</span>
+            {/* 5. Closing Cash Drawer */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>5. Closing Cash Drawer</span>
+                <span className="badge badge--warning">Drawer Cash</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Net Profit = Gross Profit - Shop Exp - Misc Exp
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Closing Cash = Opening Cash + Cash Sales − Cash Exp − Cash Drawings
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                True net earning of your business after deducting every single business cost from sales.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Calculates the exact physical cash in drawer at end of day.
               </p>
             </div>
 
-            {/* Formula 6 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#7c3aed' }}>6. Owner Withdrawals</span>
-                <span className="badge badge--online">Drawings</span>
+            {/* 6. Closing Bank Account */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3b82f6' }}>6. Closing Bank / UPI Balance</span>
+                <span className="badge badge--info">Bank Balance</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Total Withdrawals = Cash Drawings + Bank Drawings
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Closing Bank = Opening Bank + UPI Sales − Online Exp − Online Drawings
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Personal cash or bank transfers drawn by the owner from business accounts for personal use.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Calculates remaining digital money inside the cafe's bank account.
               </p>
             </div>
 
-            {/* Formula 7 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#059669' }}>7. Remaining Business Balance</span>
-                <span className="badge badge--cash">Retained Capital</span>
+            {/* 7. Cash Available */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text)' }}>7. Cash Available</span>
+                <span className="badge badge--success">Total Liquidity</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.9rem' }}>
-                Remaining Balance = Net Profit - Total Withdrawals
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Cash Available = Closing Cash + Closing Bank
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Money remaining inside the shop account after owner drawings.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Total liquid funds currently available across drawer and bank accounts.
               </p>
             </div>
 
-            {/* Formula 8 */}
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0284c7' }}>8. Cash & Online Reconciliation</span>
-                <span className="badge badge--online">Audit Rule</span>
+            {/* 8. Profit Margin % */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>8. Profit Margin %</span>
+                <span className="badge badge--info">Ratio</span>
               </div>
-              <div style={{ background: 'var(--color-bg-secondary)', padding: '0.6rem 0.8rem', borderRadius: '0.375rem', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.85rem' }}>
-                Cash Bal + Online Bal = Remaining Balance
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Profit Margin % = (Net Profit / Total Sales) × 100
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                Cash Bal = Cash Sales - Cash Exp - Cash Drawings<br />
-                Online Bal = Online Sales - Online Exp - Online Drawings
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Percentage of sales converted into profit (formatted to 1 decimal place).
+              </p>
+            </div>
+
+            {/* 9. Expense Ratio % */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>9. Expense Ratio %</span>
+                <span className="badge badge--warning">Ratio</span>
+              </div>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Expense Ratio % = (Total Expenses / Total Sales) × 100
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Percentage of sales consumed by expenses (formatted to 1 decimal place).
+              </p>
+            </div>
+
+            {/* 10. Pending Loan */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#8b5cf6' }}>10. Pending Loan Ledger</span>
+                <span className="badge badge--info">Ledger</span>
+              </div>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Pending Amount = Loan Amount − Returned Amount
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Auto-updates loan status to CLOSED when pending balance reaches ₹0.
+              </p>
+            </div>
+
+            {/* 11. Auto Carry Forward */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>11. Auto-Carry Forward Rule</span>
+                <span className="badge badge--success">Automated</span>
+              </div>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Next Day Opening = Previous Day Closing Balance
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Automatically prefills tomorrow's opening cash & bank drawer.
               </p>
             </div>
 
           </div>
 
-          {/* Interactive Calculation Simulator */}
-          <div className="card" style={{ marginTop: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-              🧮 Interactive Formula Calculation Simulator
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1.25rem' }}>
-              Test sample figures below to see live step-by-step calculations and verify how your numbers resolve.
+          {/* Interactive Live Finance Calculator */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.35rem' }}>🧮</span>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>Interactive Live Finance Calculator</h2>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
+              Enter sample numbers below to verify live step-by-step mathematical proof of background calculations.
             </p>
 
+            {/* Calculator Inputs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div className="input-group">
-                <label className="input-label">Total Sales (₹)</label>
+              <div>
+                <label className="input-label">Opening Cash (₹)</label>
                 <input
                   type="number"
                   className="input"
-                  value={simSales}
-                  onChange={(e) => setSimSales(Number(e.target.value))}
+                  value={calcOpeningCash}
+                  onChange={(e) => setCalcOpeningCash(Number(e.target.value))}
                 />
               </div>
-              <div className="input-group">
-                <label className="input-label">Material Costs (₹)</label>
+              <div>
+                <label className="input-label">Opening Bank (₹)</label>
                 <input
                   type="number"
                   className="input"
-                  value={simMaterial}
-                  onChange={(e) => setSimMaterial(Number(e.target.value))}
+                  value={calcOpeningBank}
+                  onChange={(e) => setCalcOpeningBank(Number(e.target.value))}
                 />
               </div>
-              <div className="input-group">
-                <label className="input-label">Shop Expenses (₹)</label>
+              <div>
+                <label className="input-label">Cash Sales (₹)</label>
                 <input
                   type="number"
                   className="input"
-                  value={simShopExp}
-                  onChange={(e) => setSimShopExp(Number(e.target.value))}
+                  value={calcCashSales}
+                  onChange={(e) => setCalcCashSales(Number(e.target.value))}
                 />
               </div>
-              <div className="input-group">
-                <label className="input-label">Misc Expenses (₹)</label>
+              <div>
+                <label className="input-label">UPI Sales (₹)</label>
                 <input
                   type="number"
                   className="input"
-                  value={simMiscExp}
-                  onChange={(e) => setSimMiscExp(Number(e.target.value))}
+                  value={calcUpiSales}
+                  onChange={(e) => setCalcUpiSales(Number(e.target.value))}
                 />
               </div>
-              <div className="input-group">
-                <label className="input-label">Owner Withdrawals (₹)</label>
+              <div>
+                <label className="input-label">Material Purchase (₹)</label>
                 <input
                   type="number"
                   className="input"
-                  value={simWithdrawals}
-                  onChange={(e) => setSimWithdrawals(Number(e.target.value))}
+                  value={calcMaterialExp}
+                  onChange={(e) => setCalcMaterialExp(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="input-label">Shop Overhead (₹)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={calcShopExp}
+                  onChange={(e) => setCalcShopExp(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="input-label">Fixed Rent/Util (₹)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={calcFixedExp}
+                  onChange={(e) => setCalcFixedExp(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="input-label">Cash Drawings (₹)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={calcCashDrawings}
+                  onChange={(e) => setCalcCashDrawings(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="input-label">UPI Drawings (₹)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={calcUpiDrawings}
+                  onChange={(e) => setCalcUpiDrawings(Number(e.target.value))}
                 />
               </div>
             </div>
 
-            {/* Step-by-Step Live Calculation Result */}
-            <div style={{ background: 'var(--color-bg-secondary)', padding: '1.25rem', borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
-                Live Calculation Steps:
+            {/* Live Calculation Proof Results */}
+            <div style={{ background: 'var(--color-surface-hover)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+                🔍 Live Step-by-Step Background Calculation Proof:
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>1. Gross Profit = {formatCurrency(simSales)} - {formatCurrency(simMaterial)}</span>
-                <strong>= {formatCurrency(simGrossProfit)}</strong>
+                <span>1. Total Sales = {fmtCurrency(calcCashSales)} (Cash) + {fmtCurrency(calcUpiSales)} (UPI)</span>
+                <strong>= {fmtCurrency(calcTotalSales)}</strong>
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>2. Total Expenses = {formatCurrency(simMaterial)} + {formatCurrency(simShopExp)} + {formatCurrency(simMiscExp)}</span>
-                <strong>= {formatCurrency(simTotalExp)}</strong>
+                <span>2. Gross Profit = {fmtCurrency(calcTotalSales)} − {fmtCurrency(calcMaterialExp)} (Material)</span>
+                <strong style={{ color: 'var(--color-success)' }}>= {fmtCurrency(calcGrossProfit)}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: simNetProfit >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)', fontWeight: 600 }}>
-                <span>3. Net Profit = {formatCurrency(simGrossProfit)} - {formatCurrency(simShopExp)} - {formatCurrency(simMiscExp)}</span>
-                <span>= {formatCurrency(simNetProfit)}</span>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span>3. Total Business Expenses = {fmtCurrency(calcMaterialExp)} + {fmtCurrency(calcShopExp)} + {fmtCurrency(calcFixedExp)}</span>
+                <strong style={{ color: '#ef4444' }}>= {fmtCurrency(calcTotalAllExp)}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 700, paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border)' }}>
-                <span>4. Remaining Balance = {formatCurrency(simNetProfit)} - {formatCurrency(simWithdrawals)}</span>
-                <span style={{ color: 'var(--color-primary)' }}>= {formatCurrency(simRemainingBal)}</span>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 800, background: 'var(--color-background)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+                <span>4. Net Business Profit = {fmtCurrency(calcTotalSales)} − {fmtCurrency(calcTotalAllExp)}</span>
+                <span style={{ color: calcNetProfit >= 0 ? 'var(--color-success)' : '#ef4444' }}>= {fmtCurrency(calcNetProfit)}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span>5. Profit Margin % = ({fmtCurrency(calcNetProfit)} / {fmtCurrency(calcTotalSales)}) × 100</span>
+                <strong style={{ color: 'var(--color-primary)' }}>= {calcProfitMargin.toFixed(1)}%</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span>6. Expense Ratio % = ({fmtCurrency(calcTotalAllExp)} / {fmtCurrency(calcTotalSales)}) × 100</span>
+                <strong style={{ color: '#f59e0b' }}>= {calcExpenseRatio.toFixed(1)}%</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span>7. Closing Cash Drawer = {fmtCurrency(calcOpeningCash)} + {fmtCurrency(calcCashSales)} − Expenses & Drawings</span>
+                <strong>= {fmtCurrency(calcClosingCash)}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span>8. Closing Bank Account = {fmtCurrency(calcOpeningBank)} + {fmtCurrency(calcUpiSales)} − Expenses & Drawings</span>
+                <strong>= {fmtCurrency(calcClosingBank)}</strong>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', fontWeight: 900, paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border)' }}>
+                <span>9. Total Cash Available = {fmtCurrency(calcClosingCash)} + {fmtCurrency(calcClosingBank)}</span>
+                <span style={{ color: 'var(--color-primary)' }}>= {fmtCurrency(calcTotalClosing)}</span>
+              </div>
+
+              <div style={{ fontSize: '0.8125rem', color: 'var(--color-warning)', fontWeight: 600, background: 'rgba(245, 158, 11, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', marginTop: '0.25rem' }}>
+                🛡️ Proof of Personal Isolation: Personal drawings total {fmtCurrency(calcTotalDrawings)}. Notice how Net Business Profit remains exactly {fmtCurrency(calcNetProfit)} and is untouched by personal drawings.
               </div>
             </div>
           </div>
+
         </div>
       )}
     </div>

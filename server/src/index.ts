@@ -18,6 +18,8 @@ import analyticsRoutes from './routes/analytics';
 import reportsRoutes from './routes/reports';
 import settingsRoutes from './routes/settings';
 import assistantRoutes from './routes/assistant';
+import dailyEntryRoutes from './routes/dailyEntry';
+import loansRoutes from './routes/loans';
 
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
@@ -109,6 +111,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/assistant', assistantRoutes);
+app.use('/api/daily-entry', dailyEntryRoutes);
+app.use('/api/loans', loansRoutes);
 
 // 404 handler
 app.use((_req, res) => {

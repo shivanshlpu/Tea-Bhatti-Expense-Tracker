@@ -93,6 +93,9 @@ function Layout() {
           <NavLink to="/" end className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
             <span>📊</span> Dashboard
           </NavLink>
+          <NavLink to="/daily-entry" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
+            <span>⚡</span> Daily Entry
+          </NavLink>
 
           <div className="sidebar__section-title">Transactions</div>
           <NavLink to="/sales" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
@@ -109,6 +112,9 @@ function Layout() {
           </NavLink>
           <NavLink to="/withdrawals" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
             <span>🏧</span> Withdrawals
+          </NavLink>
+          <NavLink to="/loans" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
+            <span>🤝</span> Loans & Ledger
           </NavLink>
 
           <div className="sidebar__section-title">Insights & AI</div>
@@ -153,6 +159,10 @@ function Layout() {
           <span>📊</span>
           <span>Home</span>
         </NavLink>
+        <NavLink to="/daily-entry" className={`mobile-bottom-nav ${location.pathname === '/daily-entry' ? 'active' : ''}`}>
+          <span>⚡</span>
+          <span>Daily</span>
+        </NavLink>
         <NavLink to="/sales" className={`mobile-bottom-nav ${location.pathname.startsWith('/sales') ? 'active' : ''}`}>
           <span>💰</span>
           <span>Sales</span>
@@ -164,10 +174,6 @@ function Layout() {
         <NavLink to="/reports" className={`mobile-bottom-nav ${location.pathname.startsWith('/reports') ? 'active' : ''}`}>
           <span>📄</span>
           <span>Reports</span>
-        </NavLink>
-        <NavLink to="/assistant" className={`mobile-bottom-nav ${location.pathname.startsWith('/assistant') ? 'active' : ''}`}>
-          <span>🤖</span>
-          <span>AI Assistant</span>
         </NavLink>
       </nav>
 

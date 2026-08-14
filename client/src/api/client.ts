@@ -364,6 +364,10 @@ export const settingsApi = {
   },
   updateOpeningBalance: (body: { openingCash: number; openingBank: number; date?: string }) =>
     apiFetch('/settings/opening-balance', { method: 'POST', body: JSON.stringify(body) }),
+  deleteDataRange: (body: { from: string; to: string }) =>
+    apiFetch('/settings/delete-data-range', { method: 'POST', body: JSON.stringify(body) }),
+  wipeAllData: (body: { confirmText: string }) =>
+    apiFetch('/settings/wipe-all-data', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 // ── Daily Entry API ──

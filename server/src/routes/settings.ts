@@ -184,6 +184,116 @@ router.post('/opening-balance', authorize('OWNER'), async (req: Request, res: Re
 });
 
 /**
+ * POST /api/settings/delete-data-range
+ * Delete transaction data between start and end dates for current shop. OWNER only.
+ */
+router.post('/delete-data-range', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const shopId = req.user!.shopId;
+    const { from, to } = req.body;
+
+    if (!from || !to) {
+      throw new AppError('Both start date (from) and end date (to) are required', 400);
+    }
+
+    const fromDate = new Date(`${from}T00:00:00.000Z`);
+    const toDate = new Date(`${to}T23:59:59.999Z`);
+
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      throw new AppError('Invalid date format provided', 400);
+    }
+
+    const dateFilter = { gte: fromDate, lte: toDate };
+
+    const [
+      salesDel, salesEntryDel,
+      matExpDel, shopExpDel, miscExpDel, expEntryDel,
+      withdDel, drwEntryDel,
+      loanDel, balanceDel
+    ] = await prisma.$transaction([
+      prisma.sale.deleteMany({ where: { shopId, saleDate: dateFilter } }),
+      prisma.salesEntry.deleteMany({ where: { shopId, date: dateFilter } }),
+      prisma.materialExpense.deleteMany({ where: { shopId, expDate: dateFilter } }),
+      prisma.shopExpense.deleteMany({ where: { shopId, expDate: dateFilter } }),
+      prisma.miscExpense.deleteMany({ where: { shopId, expDate: dateFilter } }),
+      prisma.expenseEntry.deleteMany({ where: { shopId, date: dateFilter } }),
+      prisma.withdrawal.deleteMany({ where: { shopId, wDate: dateFilter } }),
+      prisma.drawingsEntry.deleteMany({ where: { shopId, date: dateFilter } }),
+      prisma.loanEntry.deleteMany({ where: { shopId, date: dateFilter } }),
+      prisma.dailyBalance.deleteMany({ where: { shopId, date: dateFilter } }),
+    ]);
+
+    const totalDeleted =
+      salesDel.count + salesEntryDel.count +
+      matExpDel.count + shopExpDel.count + miscExpDel.count + expEntryDel.count +
+      withdDel.count + drwEntryDel.count +
+      loanDel.count + balanceDel.count;
+
+    res.json({
+      success: true,
+      message: `Successfully deleted ${totalDeleted} records between ${from} and ${to}`,
+      data: {
+        totalDeleted,
+        from,
+        to,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/settings/wipe-all-data
+ * Completely wipe ALL transaction records for current shop (Reset to 0). OWNER only.
+ */
+router.post('/wipe-all-data', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const shopId = req.user!.shopId;
+    const { confirmText } = req.body;
+
+    if (confirmText !== 'DELETE') {
+      throw new AppError('Must type "DELETE" to confirm wiping all shop data', 400);
+    }
+
+    const [
+      salesDel, salesEntryDel,
+      matExpDel, shopExpDel, miscExpDel, expEntryDel,
+      withdDel, drwEntryDel,
+      loanDel, balanceDel, auditDel
+    ] = await prisma.$transaction([
+      prisma.sale.deleteMany({ where: { shopId } }),
+      prisma.salesEntry.deleteMany({ where: { shopId } }),
+      prisma.materialExpense.deleteMany({ where: { shopId } }),
+      prisma.shopExpense.deleteMany({ where: { shopId } }),
+      prisma.miscExpense.deleteMany({ where: { shopId } }),
+      prisma.expenseEntry.deleteMany({ where: { shopId } }),
+      prisma.withdrawal.deleteMany({ where: { shopId } }),
+      prisma.drawingsEntry.deleteMany({ where: { shopId } }),
+      prisma.loanEntry.deleteMany({ where: { shopId } }),
+      prisma.dailyBalance.deleteMany({ where: { shopId } }),
+      prisma.auditLog.deleteMany({ where: { shopId } }),
+    ]);
+
+    const totalDeleted =
+      salesDel.count + salesEntryDel.count +
+      matExpDel.count + shopExpDel.count + miscExpDel.count + expEntryDel.count +
+      withdDel.count + drwEntryDel.count +
+      loanDel.count + balanceDel.count + auditDel.count;
+
+    res.json({
+      success: true,
+      message: `Entire shop database successfully reset to 0. Cleared ${totalDeleted} records.`,
+      data: {
+        totalDeleted,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/settings/backup
  * Placeholder for backup functionality.
  */

@@ -8,7 +8,10 @@ function Settings() {
   const addToast = useShopStore((s) => s.addToast);
   const { theme, toggleTheme } = useShopStore();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'formulas'>('profile');
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const firstDayStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+
+  const [activeTab, setActiveTab] = useState<'profile' | 'formulas' | 'cleanup'>('profile');
 
   const [form, setForm] = useState({
     name: '',
@@ -16,6 +19,17 @@ function Settings() {
     email: '',
     currency: 'INR',
   });
+
+  // Date Range Deletion State
+  const [deleteRange, setDeleteRange] = useState({
+    from: firstDayStr,
+    to: todayStr,
+  });
+  const [showRangeModal, setShowRangeModal] = useState(false);
+
+  // Entire Shop Data Wipe State
+  const [showWipeModal, setShowWipeModal] = useState(false);
+  const [wipeInput, setWipeInput] = useState('');
 
   // Interactive Live Calculator State
   const [calcOpeningCash, setCalcOpeningCash] = useState<number>(1000);
@@ -54,8 +68,6 @@ function Settings() {
   const calcClosingBank = calcOpeningBank + calcUpiSales + calcCardSales - (calcShopExp + calcFixedExp + calcMaterialExp * 0.4) - calcUpiDrawings;
   const calcTotalClosing = calcClosingCash + calcClosingBank;
 
-  const calcPendingLoan = calcLoanAmount - calcLoanReturned;
-
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: () => settingsApi.getShop(),
@@ -83,6 +95,33 @@ function Settings() {
     },
   });
 
+  // Delete Data Range Mutation
+  const deleteRangeMutation = useMutation({
+    mutationFn: (data: { from: string; to: string }) => settingsApi.deleteDataRange(data),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries();
+      addToast('success', res.message || 'Data in selected range deleted successfully');
+      setShowRangeModal(false);
+    },
+    onError: (err: any) => {
+      addToast('error', err.message || 'Failed to delete date range data');
+    },
+  });
+
+  // Wipe All Data Mutation
+  const wipeAllDataMutation = useMutation({
+    mutationFn: (confirmText: string) => settingsApi.wipeAllData({ confirmText }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries();
+      addToast('success', res.message || 'Entire shop database successfully reset to 0');
+      setShowWipeModal(false);
+      setWipeInput('');
+    },
+    onError: (err: any) => {
+      addToast('error', err.message || 'Failed to wipe shop data');
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate(form);
@@ -94,8 +133,8 @@ function Settings() {
     <div className="page-container" style={{ paddingBottom: '3rem' }}>
       <div className="page-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title">⚙️ Settings & Accounting Formulas</h1>
-          <p className="page-subtitle">Manage shop profile, theme preferences, and review full background accounting formulas</p>
+          <h1 className="page-title">⚙️ Settings & Data Cleanup</h1>
+          <p className="page-subtitle">Manage shop profile, view accounting formulas, or remove transaction data</p>
         </div>
 
         {/* Tab Switcher */}
@@ -112,7 +151,15 @@ function Settings() {
             className={`btn btn--sm ${activeTab === 'formulas' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('formulas')}
           >
-            🧮 Finance Calculator & Formulas
+            🧮 Accounting Formulas
+          </button>
+          <button
+            type="button"
+            className={`btn btn--sm ${activeTab === 'cleanup' ? 'btn--primary' : 'btn--outline'}`}
+            style={activeTab === 'cleanup' ? { background: '#ef4444', borderColor: '#ef4444', color: '#fff' } : {}}
+            onClick={() => setActiveTab('cleanup')}
+          >
+            🗑️ Data Cleanup & Reset
           </button>
         </div>
       </div>
@@ -192,7 +239,7 @@ function Settings() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'formulas' ? (
         /* Accounting Formulas & Live Calculator Tab */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
@@ -222,9 +269,9 @@ function Settings() {
 
               <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
                 <strong>2. Daily Activity & Transactions:</strong><br />
-                • 🛒 Market Supplies Expense: Spent <strong>₹50 Online</strong> $\rightarrow$ Bank drops from ₹100 to <strong>₹50</strong><br />
-                • 💰 Customer Sale Received: Collected <strong>₹200 Online</strong> $\rightarrow$ Bank increases from ₹50 to <strong>₹250</strong><br />
-                • 💵 Cash Activity: Spent <strong>₹0 Cash</strong> $\rightarrow$ Cash remains <strong>₹100</strong>
+                • 🛒 Market Supplies Expense: Spent <strong>₹50 Online</strong> → Bank drops from ₹100 to <strong>₹50</strong><br />
+                • 💰 Customer Sale Received: Collected <strong>₹200 Online</strong> → Bank increases from ₹50 to <strong>₹250</strong><br />
+                • 💵 Cash Activity: Spent <strong>₹0 Cash</strong> → Cash remains <strong>₹100</strong>
               </div>
 
               <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
@@ -399,161 +446,170 @@ function Settings() {
             </div>
 
           </div>
+        </div>
+      ) : (
+        /* Data Cleanup & Deletion Tab */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 800 }}>
+          
+          {/* Header Banner */}
+          <div className="card" style={{ background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: '#dc2626' }}>
+              🗑️ Data Cleanup & Removal Management
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Use the tools below to delete data for a specific date range or reset your entire database cleanly back to zero.
+            </p>
+          </div>
 
-          {/* Interactive Live Finance Calculator */}
-          <div className="card">
+          {/* Option A: Delete Data by Date Range */}
+          <div className="card" style={{ border: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '1.35rem' }}>🧮</span>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>Interactive Live Finance Calculator</h2>
+              <span style={{ fontSize: '1.25rem' }}>📅</span>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Option A: Delete Data by Specific Date Range</h3>
             </div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
-              Enter sample numbers below to verify live step-by-step mathematical proof of background calculations.
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
+              Select a start date (From) and end date (To) to delete all sales, expenses, withdrawals, loans, and daily balances recorded within that specific time period.
             </p>
 
-            {/* Calculator Inputs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label className="input-label">Opening Cash (₹)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="input-group">
+                <label className="input-label">Start Date (From)</label>
                 <input
-                  type="number"
+                  type="date"
                   className="input"
-                  value={calcOpeningCash}
-                  onChange={(e) => setCalcOpeningCash(Number(e.target.value))}
+                  value={deleteRange.from}
+                  onChange={(e) => setDeleteRange({ ...deleteRange, from: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="input-label">Opening Bank (₹)</label>
+
+              <div className="input-group">
+                <label className="input-label">End Date (To)</label>
                 <input
-                  type="number"
+                  type="date"
                   className="input"
-                  value={calcOpeningBank}
-                  onChange={(e) => setCalcOpeningBank(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">Cash Sales (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcCashSales}
-                  onChange={(e) => setCalcCashSales(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">UPI Sales (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcUpiSales}
-                  onChange={(e) => setCalcUpiSales(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">Material Purchase (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcMaterialExp}
-                  onChange={(e) => setCalcMaterialExp(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">Shop Overhead (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcShopExp}
-                  onChange={(e) => setCalcShopExp(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">Fixed Rent/Util (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcFixedExp}
-                  onChange={(e) => setCalcFixedExp(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">Cash Drawings (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcCashDrawings}
-                  onChange={(e) => setCalcCashDrawings(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="input-label">UPI Drawings (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  value={calcUpiDrawings}
-                  onChange={(e) => setCalcUpiDrawings(Number(e.target.value))}
+                  value={deleteRange.to}
+                  onChange={(e) => setDeleteRange({ ...deleteRange, to: e.target.value })}
                 />
               </div>
             </div>
 
-            {/* Live Calculation Proof Results */}
-            <div style={{ background: 'var(--color-surface-hover)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
-                🔍 Live Step-by-Step Background Calculation Proof:
-              </div>
+            <button
+              type="button"
+              className="btn"
+              style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', fontWeight: 700 }}
+              onClick={() => {
+                if (!deleteRange.from || !deleteRange.to) {
+                  addToast('warning', 'Please select both start and end dates');
+                  return;
+                }
+                setShowRangeModal(true);
+              }}
+            >
+              🗓️ Delete Data in Selected Date Range ({deleteRange.from} to {deleteRange.to})
+            </button>
+          </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>1. Total Sales = {fmtCurrency(calcCashSales)} (Cash) + {fmtCurrency(calcUpiSales)} (UPI)</span>
-                <strong>= {fmtCurrency(calcTotalSales)}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>2. Gross Profit = {fmtCurrency(calcTotalSales)} − {fmtCurrency(calcMaterialExp)} (Material)</span>
-                <strong style={{ color: 'var(--color-success)' }}>= {fmtCurrency(calcGrossProfit)}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>3. Total Business Expenses = {fmtCurrency(calcMaterialExp)} + {fmtCurrency(calcShopExp)} + {fmtCurrency(calcFixedExp)}</span>
-                <strong style={{ color: '#ef4444' }}>= {fmtCurrency(calcTotalAllExp)}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 800, background: 'var(--color-background)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                <span>4. Net Business Profit = {fmtCurrency(calcTotalSales)} − {fmtCurrency(calcTotalAllExp)}</span>
-                <span style={{ color: calcNetProfit >= 0 ? 'var(--color-success)' : '#ef4444' }}>= {fmtCurrency(calcNetProfit)}</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>5. Profit Margin % = ({fmtCurrency(calcNetProfit)} / {fmtCurrency(calcTotalSales)}) × 100</span>
-                <strong style={{ color: 'var(--color-primary)' }}>= {calcProfitMargin.toFixed(1)}%</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>6. Expense Ratio % = ({fmtCurrency(calcTotalAllExp)} / {fmtCurrency(calcTotalSales)}) × 100</span>
-                <strong style={{ color: '#f59e0b' }}>= {calcExpenseRatio.toFixed(1)}%</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>7. Closing Cash Drawer = {fmtCurrency(calcOpeningCash)} + {fmtCurrency(calcCashSales)} − Expenses & Drawings</span>
-                <strong>= {fmtCurrency(calcClosingCash)}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span>8. Closing Bank Account = {fmtCurrency(calcOpeningBank)} + {fmtCurrency(calcUpiSales)} − Expenses & Drawings</span>
-                <strong>= {fmtCurrency(calcClosingBank)}</strong>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', fontWeight: 900, paddingTop: '0.5rem', borderTop: '1px dashed var(--color-border)' }}>
-                <span>9. Total Cash Available = {fmtCurrency(calcClosingCash)} + {fmtCurrency(calcClosingBank)}</span>
-                <span style={{ color: 'var(--color-primary)' }}>= {fmtCurrency(calcTotalClosing)}</span>
-              </div>
-
-              <div style={{ fontSize: '0.8125rem', color: 'var(--color-warning)', fontWeight: 600, background: 'rgba(245, 158, 11, 0.1)', padding: '0.5rem 0.75rem', borderRadius: '8px', marginTop: '0.25rem' }}>
-                🛡️ Proof of Personal Isolation: Personal drawings total {fmtCurrency(calcTotalDrawings)}. Notice how Net Business Profit remains exactly {fmtCurrency(calcNetProfit)} and is untouched by personal drawings.
-              </div>
+          {/* Option B: Wipe Entire Shop Data */}
+          <div className="card" style={{ border: '1px solid #fca5a5', background: 'rgba(254, 226, 226, 0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>🔥</span>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#dc2626' }}>Option B: Reset & Wipe ENTIRE Shop Database</h3>
             </div>
+            <p style={{ fontSize: '0.85rem', color: '#991b1b', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              <strong>DANGER ZONE</strong>: This action will permanently erase <strong>ALL</strong> sales, material expenses, shop expenses, misc expenses, owner withdrawals, loans, and daily balance entries for your shop, resetting all database balances cleanly back to <strong>₹0.00</strong>.
+            </p>
+
+            <button
+              type="button"
+              className="btn"
+              style={{ background: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 800 }}
+              onClick={() => setShowWipeModal(true)}
+            >
+              💣 Reset Entire Database to 0 (Wipe All Shop Data)
+            </button>
           </div>
 
         </div>
       )}
+
+      {/* Date Range Delete Confirmation Modal */}
+      {showRangeModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 450 }}>
+            <div className="modal__header">
+              <h3 className="modal__title" style={{ color: '#f97316' }}>🗓️ Confirm Date Range Data Deletion</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRangeModal(false)}>✕</button>
+            </div>
+            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
+                You are about to delete <strong>ALL sales, expenses, withdrawals, loans, and balances</strong> recorded between:
+              </p>
+              <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, textAlign: 'center', fontSize: '0.95rem', border: '1px solid var(--color-border)' }}>
+                {deleteRange.from}  ➔  {deleteRange.to}
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                This action cannot be undone. Are you sure you want to proceed?
+              </p>
+            </div>
+            <div className="modal__footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowRangeModal(false)}>Cancel</button>
+              <button
+                type="button"
+                className="btn"
+                style={{ background: '#f97316', borderColor: '#f97316', color: '#fff' }}
+                disabled={deleteRangeMutation.isPending}
+                onClick={() => deleteRangeMutation.mutate({ from: deleteRange.from, to: deleteRange.to })}
+              >
+                {deleteRangeMutation.isPending ? 'Deleting...' : 'Confirm Date Range Deletion'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Entire Data Wipe Confirmation Modal */}
+      {showWipeModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 480 }}>
+            <div className="modal__header">
+              <h3 className="modal__title" style={{ color: '#dc2626' }}>💣 Confirm Full Database Reset</h3>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowWipeModal(false); setWipeInput(''); }}>✕</button>
+            </div>
+            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ fontSize: '0.9rem', color: '#991b1b', margin: 0, fontWeight: 600 }}>
+                ⚠️ WARNING: This will permanently delete EVERY transaction record in your shop account!
+              </p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                To prevent accidental deletion, please type <strong style={{ color: '#dc2626' }}>DELETE</strong> in the input box below to confirm:
+              </p>
+
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Type DELETE to confirm"
+                  value={wipeInput}
+                  onChange={(e) => setWipeInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="modal__footer">
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowWipeModal(false); setWipeInput(''); }}>Cancel</button>
+              <button
+                type="button"
+                className="btn"
+                style={{ background: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 800 }}
+                disabled={wipeInput !== 'DELETE' || wipeAllDataMutation.isPending}
+                onClick={() => wipeAllDataMutation.mutate(wipeInput)}
+              >
+                {wipeAllDataMutation.isPending ? 'Wiping Database...' : 'Permanently Reset Entire Database'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

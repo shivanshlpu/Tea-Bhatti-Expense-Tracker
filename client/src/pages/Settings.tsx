@@ -56,10 +56,9 @@ function Settings() {
   const calcTotalBusinessExp = calcMaterialExp + calcShopExp;
   const calcTotalAllExp = calcTotalBusinessExp + calcFixedExp;
 
-  const calcGrossProfit = calcTotalSales - calcMaterialExp;
-  const calcNetProfit = calcTotalSales - calcTotalAllExp;
-
   const calcTotalDrawings = calcCashDrawings + calcUpiDrawings;
+  const calcGrossProfit = calcTotalSales - calcMaterialExp;
+  const calcNetProfit = calcGrossProfit - calcShopExp - calcFixedExp - calcTotalDrawings;
 
   const calcProfitMargin = calcTotalSales > 0 ? (calcNetProfit / calcTotalSales) * 100 : 0;
   const calcExpenseRatio = calcTotalSales > 0 ? (calcTotalAllExp / calcTotalSales) * 100 : 0;
@@ -339,11 +338,11 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>4. Net Business Profit</span>
                 <span className="badge badge--success">Net Bottom Line</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Net Profit = Total Sales − Business Exp − Fixed Exp
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Net Profit = Gross Profit − Shop Exp − Misc Exp − Loan Repayments − Owner Drawings
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                💡 <strong>Key Rule</strong>: Personal drawings/withdrawals are strictly isolated and do <strong>NOT</strong> reduce Net Business Profit.
+                💡 <strong>Net Profit Rule</strong>: Net retained earnings after deducting shop overheads, misc expenses, loan repayments, and owner drawings.
               </p>
             </div>
 

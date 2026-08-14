@@ -231,7 +231,7 @@ export async function computeFinanceSummary(
   const onlineBalance = openingBankVal.plus(totalOnlineSales).minus(totalOnlineExpenses).minus(onlineWithdrawals);
 
   const grossProfit = totalSales.minus(totalMaterialExpenses);
-  const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses);
+  const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses).minus(totalDrawings);
 
   const profitMarginPercent = totalSales.greaterThan(0)
     ? netProfit.dividedBy(totalSales).times(100)

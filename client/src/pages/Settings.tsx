@@ -130,32 +130,32 @@ function Settings() {
   const fmtCurrency = (val: number) => `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="page-container" style={{ paddingBottom: '3rem' }}>
-      <div className="page-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+    <div className="page-container" style={{ paddingBottom: '3rem', width: '100%', boxSizing: 'border-box' }}>
+      <div className="page-header" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem', width: '100%' }}>
         <div>
-          <h1 className="page-title">⚙️ Settings & Data Cleanup</h1>
+          <h1 className="page-title" style={{ fontSize: '1.4rem' }}>⚙️ Settings & Data Cleanup</h1>
           <p className="page-subtitle">Manage shop profile, view accounting formulas, or remove transaction data</p>
         </div>
 
-        {/* Tab Switcher */}
-        <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.35rem', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
+        {/* Side-Scrollable Horizontal Tab Switcher for Mobile & Desktop */}
+        <div className="tab-scroll-container">
           <button
             type="button"
-            className={`btn btn--sm ${activeTab === 'profile' ? 'btn--primary' : 'btn--outline'}`}
+            className={`btn btn--sm tab-btn-item ${activeTab === 'profile' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('profile')}
           >
             ⚙️ Shop Profile
           </button>
           <button
             type="button"
-            className={`btn btn--sm ${activeTab === 'formulas' ? 'btn--primary' : 'btn--outline'}`}
+            className={`btn btn--sm tab-btn-item ${activeTab === 'formulas' ? 'btn--primary' : 'btn--outline'}`}
             onClick={() => setActiveTab('formulas')}
           >
             🧮 Accounting Formulas
           </button>
           <button
             type="button"
-            className={`btn btn--sm ${activeTab === 'cleanup' ? 'btn--primary' : 'btn--outline'}`}
+            className={`btn btn--sm tab-btn-item ${activeTab === 'cleanup' ? 'btn--primary' : 'btn--outline'}`}
             style={activeTab === 'cleanup' ? { background: '#ef4444', borderColor: '#ef4444', color: '#fff' } : {}}
             onClick={() => setActiveTab('cleanup')}
           >
@@ -165,7 +165,7 @@ function Settings() {
       </div>
 
       {activeTab === 'profile' ? (
-        <div style={{ maxWidth: 650, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ maxWidth: 650, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Profile Card */}
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Shop Profile</h3>
@@ -226,7 +226,7 @@ function Settings() {
           {/* Theme Card */}
           <div className="card">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Theme Preference</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <div style={{ fontWeight: 700 }}>Active Color Theme</div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
@@ -241,14 +241,14 @@ function Settings() {
         </div>
       ) : activeTab === 'formulas' ? (
         /* Accounting Formulas & Live Calculator Tab */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
           
           {/* Header Banner */}
           <div className="card" style={{ background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-hover) 100%)', borderLeft: '4px solid var(--color-primary)' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: 'var(--color-primary)' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: 'var(--color-primary)' }}>
               📖 Background Accounting Formulas & Cash Flow Logic
             </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
               Below are all 11 accounting formulas and real-time cash/bank drawer tracking logic applied across Tea Bhatti Cafe.
             </p>
           </div>
@@ -259,7 +259,7 @@ function Settings() {
               💡 Real-World Example: How Opening, Spending, Sales & Closing Work
             </h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
               <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
                 <strong>1. Opening State (Day Start):</strong><br />
                 • Opening Cash Drawer = <strong>₹100</strong><br />
@@ -289,7 +289,7 @@ function Settings() {
           </div>
 
           {/* Grid of 11 Formulas */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             
             {/* 1. Total Sales */}
             <div className="card">
@@ -297,7 +297,7 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-success)' }}>1. Total Sales Revenue</span>
                 <span className="badge badge--success">Income</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
                 Total Sales = Cash Sales + UPI Sales + Card Sales
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
@@ -311,7 +311,7 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>2. Gross Profit</span>
                 <span className="badge badge--info">Margin</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
                 Gross Profit = Total Sales − Material Purchase Exp
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
@@ -325,7 +325,7 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ef4444' }}>3. Fixed & Shop Expenses</span>
                 <span className="badge badge--warning">Overhead</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.875rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
                 Fixed Exp = Shop Rent + Electricity + Staff Wages
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
@@ -353,7 +353,7 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>5. Closing Cash Drawer</span>
                 <span className="badge badge--warning">Drawer Cash</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
                 Closing Cash = Opening Cash + Cash Sales − Cash Exp − Cash Drawings
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
@@ -367,7 +367,7 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3b82f6' }}>6. Closing Bank / UPI Balance</span>
                 <span className="badge badge--info">Bank Balance</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
                 Closing Bank = Opening Bank + UPI Sales − Online Exp − Online Drawings
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
@@ -448,45 +448,47 @@ function Settings() {
           </div>
         </div>
       ) : (
-        /* Data Cleanup & Deletion Tab */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 800 }}>
+        /* Data Cleanup & Deletion Tab (Mobile Optimized) */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: 800, width: '100%', boxSizing: 'border-box' }}>
           
           {/* Header Banner */}
-          <div className="card" style={{ background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: '#dc2626' }}>
+          <div className="card" style={{ background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', width: '100%', boxSizing: 'border-box' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, marginBottom: '0.35rem', color: '#dc2626' }}>
               🗑️ Data Cleanup & Removal Management
             </h2>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
               Use the tools below to delete data for a specific date range or reset your entire database cleanly back to zero.
             </p>
           </div>
 
           {/* Option A: Delete Data by Date Range */}
-          <div className="card" style={{ border: '1px solid var(--color-border)' }}>
+          <div className="card" style={{ border: '1px solid var(--color-border)', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>📅</span>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Option A: Delete Data by Specific Date Range</h3>
+              <span style={{ fontSize: '1.2rem' }}>📅</span>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Option A: Delete Data by Specific Date Range</h3>
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem', lineHeight: 1.4 }}>
               Select a start date (From) and end date (To) to delete all sales, expenses, withdrawals, loans, and daily balances recorded within that specific time period.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem', width: '100%' }}>
               <div className="input-group">
-                <label className="input-label">Start Date (From)</label>
+                <label className="input-label" style={{ fontSize: '0.8rem' }}>Start Date (From)</label>
                 <input
                   type="date"
                   className="input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                   value={deleteRange.from}
                   onChange={(e) => setDeleteRange({ ...deleteRange, from: e.target.value })}
                 />
               </div>
 
               <div className="input-group">
-                <label className="input-label">End Date (To)</label>
+                <label className="input-label" style={{ fontSize: '0.8rem' }}>End Date (To)</label>
                 <input
                   type="date"
                   className="input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                   value={deleteRange.to}
                   onChange={(e) => setDeleteRange({ ...deleteRange, to: e.target.value })}
                 />
@@ -496,7 +498,19 @@ function Settings() {
             <button
               type="button"
               className="btn"
-              style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', fontWeight: 700 }}
+              style={{
+                width: '100%',
+                background: '#f97316',
+                borderColor: '#f97316',
+                color: '#fff',
+                fontWeight: 700,
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+                padding: '0.75rem 1rem',
+                textAlign: 'center',
+                lineHeight: 1.3,
+                fontSize: '0.875rem',
+              }}
               onClick={() => {
                 if (!deleteRange.from || !deleteRange.to) {
                   addToast('warning', 'Please select both start and end dates');
@@ -505,24 +519,36 @@ function Settings() {
                 setShowRangeModal(true);
               }}
             >
-              🗓️ Delete Data in Selected Date Range ({deleteRange.from} to {deleteRange.to})
+              🗓️ Delete Data in Range ({deleteRange.from} to {deleteRange.to})
             </button>
           </div>
 
           {/* Option B: Wipe Entire Shop Data */}
-          <div className="card" style={{ border: '1px solid #fca5a5', background: 'rgba(254, 226, 226, 0.2)' }}>
+          <div className="card" style={{ border: '1px solid #fca5a5', background: 'rgba(254, 226, 226, 0.2)', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>🔥</span>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#dc2626' }}>Option B: Reset & Wipe ENTIRE Shop Database</h3>
+              <span style={{ fontSize: '1.2rem' }}>🔥</span>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#dc2626' }}>Option B: Reset & Wipe ENTIRE Shop Database</h3>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#991b1b', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-              <strong>DANGER ZONE</strong>: This action will permanently erase <strong>ALL</strong> sales, material expenses, shop expenses, misc expenses, owner withdrawals, loans, and daily balance entries for your shop, resetting all database balances cleanly back to <strong>₹0.00</strong>.
+            <p style={{ fontSize: '0.85rem', color: '#991b1b', marginBottom: '1rem', lineHeight: 1.4 }}>
+              <strong>DANGER ZONE</strong>: Permanently erases <strong>ALL</strong> sales, material expenses, shop expenses, misc expenses, withdrawals, loans, and daily balance entries, resetting database balances cleanly back to <strong>₹0.00</strong>.
             </p>
 
             <button
               type="button"
               className="btn"
-              style={{ background: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 800 }}
+              style={{
+                width: '100%',
+                background: '#dc2626',
+                borderColor: '#dc2626',
+                color: '#fff',
+                fontWeight: 800,
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+                padding: '0.75rem 1rem',
+                textAlign: 'center',
+                fontSize: '0.875rem',
+                lineHeight: 1.3,
+              }}
               onClick={() => setShowWipeModal(true)}
             >
               💣 Reset Entire Database to 0 (Wipe All Shop Data)
@@ -535,32 +561,32 @@ function Settings() {
       {/* Date Range Delete Confirmation Modal */}
       {showRangeModal && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 450 }}>
+          <div className="modal" style={{ maxWidth: '92vw', width: 450, padding: '1.25rem' }}>
             <div className="modal__header">
-              <h3 className="modal__title" style={{ color: '#f97316' }}>🗓️ Confirm Date Range Data Deletion</h3>
+              <h3 className="modal__title" style={{ color: '#f97316', fontSize: '1.05rem' }}>🗓️ Confirm Date Range Deletion</h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowRangeModal(false)}>✕</button>
             </div>
             <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <p style={{ fontSize: '0.9rem', color: 'var(--color-text)' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--color-text)', margin: 0 }}>
                 You are about to delete <strong>ALL sales, expenses, withdrawals, loans, and balances</strong> recorded between:
               </p>
-              <div style={{ background: 'var(--color-background)', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, textAlign: 'center', fontSize: '0.95rem', border: '1px solid var(--color-border)' }}>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontWeight: 700, textAlign: 'center', fontSize: '0.9rem', border: '1px solid var(--color-border)' }}>
                 {deleteRange.from}  ➔  {deleteRange.to}
               </div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: 0 }}>
                 This action cannot be undone. Are you sure you want to proceed?
               </p>
             </div>
-            <div className="modal__footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowRangeModal(false)}>Cancel</button>
+            <div className="modal__footer" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowRangeModal(false)}>Cancel</button>
               <button
                 type="button"
                 className="btn"
-                style={{ background: '#f97316', borderColor: '#f97316', color: '#fff' }}
+                style={{ background: '#f97316', borderColor: '#f97316', color: '#fff', flex: 1 }}
                 disabled={deleteRangeMutation.isPending}
                 onClick={() => deleteRangeMutation.mutate({ from: deleteRange.from, to: deleteRange.to })}
               >
-                {deleteRangeMutation.isPending ? 'Deleting...' : 'Confirm Date Range Deletion'}
+                {deleteRangeMutation.isPending ? 'Deleting...' : 'Confirm Deletion'}
               </button>
             </div>
           </div>
@@ -570,23 +596,24 @@ function Settings() {
       {/* Entire Data Wipe Confirmation Modal */}
       {showWipeModal && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 480 }}>
+          <div className="modal" style={{ maxWidth: '92vw', width: 480, padding: '1.25rem' }}>
             <div className="modal__header">
-              <h3 className="modal__title" style={{ color: '#dc2626' }}>💣 Confirm Full Database Reset</h3>
+              <h3 className="modal__title" style={{ color: '#dc2626', fontSize: '1.05rem' }}>💣 Confirm Full Database Reset</h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowWipeModal(false); setWipeInput(''); }}>✕</button>
             </div>
-            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <p style={{ fontSize: '0.9rem', color: '#991b1b', margin: 0, fontWeight: 600 }}>
+            <div className="modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#991b1b', margin: 0, fontWeight: 600 }}>
                 ⚠️ WARNING: This will permanently delete EVERY transaction record in your shop account!
               </p>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                To prevent accidental deletion, please type <strong style={{ color: '#dc2626' }}>DELETE</strong> in the input box below to confirm:
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                To prevent accidental deletion, type <strong style={{ color: '#dc2626' }}>DELETE</strong> in the box below:
               </p>
 
               <div className="input-group">
                 <input
                   type="text"
                   className="input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                   placeholder="Type DELETE to confirm"
                   value={wipeInput}
                   onChange={(e) => setWipeInput(e.target.value)}
@@ -594,16 +621,16 @@ function Settings() {
                 />
               </div>
             </div>
-            <div className="modal__footer">
-              <button type="button" className="btn btn-secondary" onClick={() => { setShowWipeModal(false); setWipeInput(''); }}>Cancel</button>
+            <div className="modal__footer" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowWipeModal(false); setWipeInput(''); }}>Cancel</button>
               <button
                 type="button"
                 className="btn"
-                style={{ background: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 800 }}
+                style={{ background: '#dc2626', borderColor: '#dc2626', color: '#fff', fontWeight: 800, flex: 1 }}
                 disabled={wipeInput !== 'DELETE' || wipeAllDataMutation.isPending}
                 onClick={() => wipeAllDataMutation.mutate(wipeInput)}
               >
-                {wipeAllDataMutation.isPending ? 'Wiping Database...' : 'Permanently Reset Entire Database'}
+                {wipeAllDataMutation.isPending ? 'Resetting...' : 'Reset Database'}
               </button>
             </div>
           </div>

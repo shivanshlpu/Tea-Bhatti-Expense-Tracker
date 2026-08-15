@@ -93,6 +93,9 @@ function Layout() {
           <NavLink to="/" end className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
             <span>📊</span> Dashboard
           </NavLink>
+          <NavLink to="/payment-breakdown" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
+            <span>💳</span> Payment Breakdown
+          </NavLink>
 
           <div className="sidebar__section-title">Transactions</div>
           <NavLink to="/sales" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>

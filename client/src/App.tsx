@@ -18,6 +18,7 @@ import Withdrawals from './pages/Withdrawals';
 import Analytics from './pages/Analytics';
 import Assistant from './pages/Assistant';
 import Settings from './pages/Settings';
+import PaymentBreakdown from './pages/PaymentBreakdown';
 import Layout from './components/Layout';
 
 const queryClient = new QueryClient({
@@ -73,6 +74,7 @@ function App() {
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="assistant" element={<Assistant />} />
+            <Route path="payment-breakdown" element={<PaymentBreakdown />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

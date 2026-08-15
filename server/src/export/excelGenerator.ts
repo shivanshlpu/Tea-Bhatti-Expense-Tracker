@@ -14,6 +14,7 @@ export interface ReportExportData {
     shopExpenses: any[];
     miscExpenses: any[];
     withdrawals: any[];
+    loans?: any[];
   };
 }
 

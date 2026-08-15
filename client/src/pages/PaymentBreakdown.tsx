@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '../api/client';
+import { dashboardApi, reportsApi } from '../api/client';
 import { formatCurrency, formatDate } from '../lib/financeFormatters';
+import { useShopStore } from '../stores/useShopStore';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 type RangeTab = 'today' | 'week' | 'month' | 'year' | 'date';
 
 function PaymentBreakdown() {
+  const addToast = useShopStore((s) => s.addToast);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
   const [range, setRange] = useState<RangeTab>('today');
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -44,10 +47,22 @@ function PaymentBreakdown() {
     }
 
     return {
-      from: from.toISOString(),
-      to: to.toISOString(),
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
     };
   }, [range, selectedDate]);
+
+  const handleDownloadPdf = async () => {
+    try {
+      setDownloadingPdf(true);
+      await reportsApi.downloadPdf(rangeDates.from, rangeDates.to, 'ALL');
+      addToast('success', 'Professional PDF statement downloaded successfully!');
+    } catch (err: any) {
+      addToast('error', err.message || 'Failed to generate PDF');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const { data: dashData, isLoading } = useQuery({
     queryKey: ['payment-breakdown', range, rangeDates.from, rangeDates.to],
@@ -133,8 +148,8 @@ function PaymentBreakdown() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-outline" onClick={() => window.print()}>
-            🖨️ Print / Save PDF
+          <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+            {downloadingPdf ? <span className="spinner" /> : '📥 Download Professional PDF Statement'}
           </button>
         </div>
       </div>

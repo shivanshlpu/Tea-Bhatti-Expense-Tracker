@@ -37,12 +37,13 @@ async function fetchReportData(shopId: string, fromStr?: string, toStr?: string,
 
   const summary = await computeFinanceSummary(shopId, { from, to });
 
-  const [sales, materialExpenses, shopExpenses, miscExpenses, withdrawals] = await Promise.all([
+  const [sales, materialExpenses, shopExpenses, miscExpenses, withdrawals, loans] = await Promise.all([
     prisma.sale.findMany({ where: { ...baseWhere, saleDate: dateFilter }, orderBy: [{ saleDate: 'desc' }, { createdAt: 'desc' }] }),
     prisma.materialExpense.findMany({ where: { ...baseWhere, expDate: dateFilter }, orderBy: [{ expDate: 'desc' }, { createdAt: 'desc' }] }),
     prisma.shopExpense.findMany({ where: { ...baseWhere, expDate: dateFilter }, orderBy: [{ expDate: 'desc' }, { createdAt: 'desc' }] }),
     prisma.miscExpense.findMany({ where: { ...baseWhere, expDate: dateFilter }, orderBy: [{ expDate: 'desc' }, { createdAt: 'desc' }] }),
     prisma.withdrawal.findMany({ where: { ...baseWhere, wDate: dateFilter }, orderBy: [{ wDate: 'desc' }, { createdAt: 'desc' }] }),
+    prisma.loanEntry.findMany({ where: { shopId, date: dateFilter }, orderBy: [{ date: 'desc' }, { createdAt: 'desc' }] }),
   ]);
 
   return {
@@ -58,6 +59,12 @@ async function fetchReportData(shopId: string, fromStr?: string, toStr?: string,
       shopExpenses: shopExpenses.map((e) => ({ ...e, amount: e.amount.toString() })),
       miscExpenses: miscExpenses.map((e) => ({ ...e, amount: e.amount.toString() })),
       withdrawals: withdrawals.map((w) => ({ ...w, amount: w.amount.toString() })),
+      loans: loans.map((l) => ({
+        ...l,
+        amount: l.amount.toString(),
+        returnedAmount: l.returnedAmount.toString(),
+        pendingAmount: l.pendingAmount.toString(),
+      })),
     },
   };
 }

@@ -190,14 +190,9 @@ export async function computeFinanceSummary(
   const totalDrawings = totalWithdrawals;
 
   // ── Period Loans ──
-  const [loanTakenAgg, loanGivenAgg, pendingTakenAgg, pendingGivenAgg] = await Promise.all([
-    prisma.loanEntry.aggregate({
-      where: { shopId, type: 'TAKEN', date: dateFilter },
-      _sum: { amount: true },
-    }),
-    prisma.loanEntry.aggregate({
-      where: { shopId, type: 'GIVEN', date: dateFilter },
-      _sum: { amount: true },
+  const [loanEntries, pendingTakenAgg, pendingGivenAgg] = await Promise.all([
+    prisma.loanEntry.findMany({
+      where: { shopId, date: dateFilter },
     }),
     prisma.loanEntry.aggregate({
       where: { shopId, type: 'TAKEN', status: 'PENDING' },
@@ -209,8 +204,45 @@ export async function computeFinanceSummary(
     }),
   ]);
 
-  const loanTaken = sumOrZero(loanTakenAgg._sum.amount);
-  const loanGiven = sumOrZero(loanGivenAgg._sum.amount);
+  let cashLoanGiven = new Decimal(0);
+  let onlineLoanGiven = new Decimal(0);
+  let cashLoanGivenReturned = new Decimal(0);
+  let onlineLoanGivenReturned = new Decimal(0);
+
+  let cashLoanTaken = new Decimal(0);
+  let onlineLoanTaken = new Decimal(0);
+  let cashLoanTakenReturned = new Decimal(0);
+  let onlineLoanTakenReturned = new Decimal(0);
+
+  for (const l of loanEntries) {
+    const amt = new Decimal(l.amount.toString());
+    const ret = new Decimal(l.returnedAmount.toString());
+    const mode = l.paymentMode || 'CASH';
+
+    if (l.type === 'GIVEN') {
+      if (mode === 'ONLINE') {
+        onlineLoanGiven = onlineLoanGiven.plus(amt);
+        onlineLoanGivenReturned = onlineLoanGivenReturned.plus(ret);
+      } else {
+        cashLoanGiven = cashLoanGiven.plus(amt);
+        cashLoanGivenReturned = cashLoanGivenReturned.plus(ret);
+      }
+    } else if (l.type === 'TAKEN') {
+      if (mode === 'ONLINE') {
+        onlineLoanTaken = onlineLoanTaken.plus(amt);
+        onlineLoanTakenReturned = onlineLoanTakenReturned.plus(ret);
+      } else {
+        cashLoanTaken = cashLoanTaken.plus(amt);
+        cashLoanTakenReturned = cashLoanTakenReturned.plus(ret);
+      }
+    }
+  }
+
+  const loanGiven = cashLoanGiven.plus(onlineLoanGiven);
+  const loanTaken = cashLoanTaken.plus(onlineLoanTaken);
+  const loanGivenReturned = cashLoanGivenReturned.plus(onlineLoanGivenReturned);
+  const loanTakenReturned = cashLoanTakenReturned.plus(onlineLoanTakenReturned);
+
   const pendingLoanTaken = sumOrZero(pendingTakenAgg._sum.pendingAmount);
   const pendingLoanGiven = sumOrZero(pendingGivenAgg._sum.pendingAmount);
 
@@ -231,14 +263,39 @@ export async function computeFinanceSummary(
   const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
   const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
 
-  const cashBalance = openingCashVal.plus(totalCashSales).minus(totalCashExpenses).minus(cashWithdrawals);
-  const onlineBalance = openingBankVal.plus(totalOnlineSales).minus(totalOnlineExpenses).minus(onlineWithdrawals);
+  // Cash Balance: Opening + Cash Sales + Cash Loans Borrowed + Cash Loan Repayments Recv − Cash Exp − Cash Drawings − Cash Loans Issued − Cash Debt Repaid
+  const cashBalance = openingCashVal
+    .plus(totalCashSales)
+    .plus(cashLoanTaken)
+    .plus(cashLoanGivenReturned)
+    .minus(totalCashExpenses)
+    .minus(cashWithdrawals)
+    .minus(cashLoanGiven)
+    .minus(cashLoanTakenReturned);
+
+  // Online Balance: Opening + Online Sales + Online Loans Borrowed + Online Loan Repayments Recv − Online Exp − Online Drawings − Online Loans Issued − Online Debt Repaid
+  const onlineBalance = openingBankVal
+    .plus(totalOnlineSales)
+    .plus(onlineLoanTaken)
+    .plus(onlineLoanGivenReturned)
+    .minus(totalOnlineExpenses)
+    .minus(onlineWithdrawals)
+    .minus(onlineLoanGiven)
+    .minus(onlineLoanTakenReturned);
 
   const totalOpeningVal = openingCashVal.plus(openingBankVal);
   const effectiveTotalSales = totalSales.plus(totalOpeningVal);
 
   const grossProfit = effectiveTotalSales.minus(totalMaterialExpenses);
-  const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses).minus(totalDrawings);
+
+  // Net Profit: Gross Profit − Shop Exp − Misc Exp − Owner Drawings − Net Loans Issued Outstanding − Borrowed Loans Repaid
+  const netLoanGivenImpact = loanGiven.minus(loanGivenReturned);
+  const netProfit = grossProfit
+    .minus(totalShopExpenses)
+    .minus(totalMiscExpenses)
+    .minus(totalDrawings)
+    .minus(netLoanGivenImpact)
+    .minus(loanTakenReturned);
 
   const profitMarginPercent = totalSales.greaterThan(0)
     ? netProfit.dividedBy(totalSales).times(100)

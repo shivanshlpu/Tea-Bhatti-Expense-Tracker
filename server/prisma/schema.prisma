@@ -202,6 +202,7 @@ model LoanEntry {
   returnedAmount Decimal    @default(0) @db.Decimal(12, 2)
   pendingAmount  Decimal    @db.Decimal(12, 2)
   status         LoanStatus @default(PENDING)
+  paymentMode    String     @default("CASH")
   note           String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime

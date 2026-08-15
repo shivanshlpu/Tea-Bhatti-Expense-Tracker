@@ -13,6 +13,7 @@ interface Loan {
   returnedAmount: number;
   pendingAmount: number;
   status: 'PENDING' | 'CLOSED';
+  paymentMode: 'CASH' | 'ONLINE';
   note?: string;
 }
 
@@ -27,6 +28,7 @@ function Loans() {
     personName: '',
     amount: '',
     returnedAmount: '0',
+    paymentMode: 'CASH' as 'CASH' | 'ONLINE',
     date: todayStr,
     note: '',
   });
@@ -36,10 +38,11 @@ function Loans() {
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'TAKEN' | 'GIVEN'>('ALL');
 
   // Repayment Modal State
-  const [repayModal, setRepayModal] = useState<{ open: boolean; loan: Loan | null; amount: string }>({
+  const [repayModal, setRepayModal] = useState<{ open: boolean; loan: Loan | null; amount: string; repaymentMode: 'CASH' | 'ONLINE' }>({
     open: false,
     loan: null,
     amount: '',
+    repaymentMode: 'CASH',
   });
 
   // Delete Modal State
@@ -72,6 +75,7 @@ function Loans() {
         personName: '',
         amount: '',
         returnedAmount: '0',
+        paymentMode: 'CASH',
         date: todayStr,
         note: '',
       });
@@ -87,7 +91,7 @@ function Loans() {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       addToast('success', 'Loan repayment recorded successfully');
-      setRepayModal({ open: false, loan: null, amount: '' });
+      setRepayModal({ open: false, loan: null, amount: '', repaymentMode: 'CASH' });
     },
     onError: (err: any) => {
       addToast('error', err.message || 'Failed to update loan repayment');
@@ -99,54 +103,60 @@ function Loans() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      addToast('success', 'Loan record deleted');
+      addToast('success', 'Loan record deleted successfully');
       setDeleteModal({ open: false, loanId: '' });
     },
     onError: (err: any) => {
-      addToast('error', err.message || 'Failed to delete loan record');
+      addToast('error', err.message || 'Failed to delete loan');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.personName.trim()) {
-      addToast('warning', 'Please enter a person or party name');
+      addToast('warning', 'Please enter person/party name');
       return;
     }
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      addToast('warning', 'Please enter a valid loan amount');
+    const amt = parseFloat(form.amount);
+    if (isNaN(amt) || amt <= 0) {
+      addToast('warning', 'Please enter a valid positive loan amount');
       return;
     }
 
     createMutation.mutate({
       type: form.type,
       personName: form.personName.trim(),
-      amount: parseFloat(form.amount),
+      amount: amt,
       returnedAmount: parseFloat(form.returnedAmount || '0'),
+      paymentMode: form.paymentMode,
       date: form.date,
-      note: form.note || undefined,
+      note: form.note.trim() || undefined,
     });
   };
 
   const handleRepaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repayModal.loan || !repayModal.amount || parseFloat(repayModal.amount) <= 0) {
+    if (!repayModal.loan) return;
+    const addAmt = parseFloat(repayModal.amount);
+    if (isNaN(addAmt) || addAmt <= 0) {
       addToast('warning', 'Please enter a valid repayment amount');
       return;
     }
 
-    const addAmt = parseFloat(repayModal.amount);
-    const newReturned = repayModal.loan.returnedAmount + addAmt;
+    const currentReturned = repayModal.loan.returnedAmount;
+    const newReturnedTotal = currentReturned + addAmt;
 
     updateMutation.mutate({
       id: repayModal.loan.id,
       data: {
-        returnedAmount: newReturned,
+        returnedAmount: newReturnedTotal,
+        paymentMode: repayModal.repaymentMode,
+        repaymentMode: repayModal.repaymentMode,
       },
     });
   };
 
-  // Aggregates
+  // Totals
   const totalPendingTaken = loansList
     .filter((l) => l.type === 'TAKEN' && l.status === 'PENDING')
     .reduce((sum, l) => sum + l.pendingAmount, 0);
@@ -161,7 +171,7 @@ function Loans() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Loans & Ledger Management</h1>
-          <p className="page-subtitle">Log & track borrowed loans (liabilities) and lent loans (assets)</p>
+          <p className="page-subtitle">Log & track borrowed loans (liabilities) and lent loans (assets) with Cash vs Online mode tracking</p>
         </div>
       </div>
 
@@ -187,6 +197,28 @@ function Loans() {
                   onClick={() => setForm({ ...form, type: 'GIVEN' })}
                 >
                   📤 Loan Given (Lent)
+                </button>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label className="input-label">Payment Mode (Cash vs Online)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className={`btn ${form.paymentMode === 'CASH' ? 'btn-primary' : 'btn-secondary'} w-full`}
+                  style={form.paymentMode === 'CASH' ? { background: '#16a34a', borderColor: '#16a34a' } : {}}
+                  onClick={() => setForm({ ...form, paymentMode: 'CASH' })}
+                >
+                  💵 Cash (Offline)
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${form.paymentMode === 'ONLINE' ? 'btn-primary' : 'btn-secondary'} w-full`}
+                  style={form.paymentMode === 'ONLINE' ? { background: '#2563eb', borderColor: '#2563eb' } : {}}
+                  onClick={() => setForm({ ...form, paymentMode: 'ONLINE' })}
+                >
+                  🌐 Online / UPI
                 </button>
               </div>
             </div>
@@ -306,6 +338,7 @@ function Loans() {
                   <tr>
                     <th>Date</th>
                     <th>Type</th>
+                    <th>Mode</th>
                     <th>Person / Party</th>
                     <th>Total Amount</th>
                     <th>Returned</th>
@@ -321,6 +354,11 @@ function Loans() {
                       <td>
                         <span className={`badge ${loan.type === 'TAKEN' ? 'badge--cash' : 'badge--online'}`}>
                           {loan.type === 'TAKEN' ? 'TAKEN' : 'GIVEN'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${loan.paymentMode === 'CASH' ? 'badge--cash' : 'badge--online'}`}>
+                          {loan.paymentMode || 'CASH'}
                         </span>
                       </td>
                       <td style={{ fontWeight: 600 }}>
@@ -343,7 +381,7 @@ function Loans() {
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              onClick={() => setRepayModal({ open: true, loan, amount: '' })}
+                              onClick={() => setRepayModal({ open: true, loan, amount: '', repaymentMode: 'CASH' })}
                             >
                               + Repay
                             </button>
@@ -378,6 +416,28 @@ function Loans() {
 
             <form onSubmit={handleRepaySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="input-group">
+                <label className="input-label">Repayment Mode</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className={`btn ${repayModal.repaymentMode === 'CASH' ? 'btn-primary' : 'btn-secondary'} w-full`}
+                    style={repayModal.repaymentMode === 'CASH' ? { background: '#16a34a', borderColor: '#16a34a' } : {}}
+                    onClick={() => setRepayModal({ ...repayModal, repaymentMode: 'CASH' })}
+                  >
+                    💵 Cash
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${repayModal.repaymentMode === 'ONLINE' ? 'btn-primary' : 'btn-secondary'} w-full`}
+                    style={repayModal.repaymentMode === 'ONLINE' ? { background: '#2563eb', borderColor: '#2563eb' } : {}}
+                    onClick={() => setRepayModal({ ...repayModal, repaymentMode: 'ONLINE' })}
+                  >
+                    🌐 Online / UPI
+                  </button>
+                </div>
+              </div>
+
+              <div className="input-group">
                 <label className="input-label">Repayment Amount Received/Paid (₹)</label>
                 <input
                   type="number"
@@ -396,7 +456,7 @@ function Loans() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setRepayModal({ open: false, loan: null, amount: '' })}
+                  onClick={() => setRepayModal({ open: false, loan: null, amount: '', repaymentMode: 'CASH' })}
                 >
                   Cancel
                 </button>

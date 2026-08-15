@@ -14,12 +14,16 @@ const createLoanSchema = z.object({
   personName: z.string().min(1, 'Person name is required'),
   amount: z.number().positive('Amount must be positive'),
   returnedAmount: z.number().min(0).default(0),
+  paymentMode: z.enum(['CASH', 'ONLINE']).default('CASH'),
+  mode: z.enum(['CASH', 'ONLINE']).optional(),
   note: z.string().optional().nullable(),
 });
 
 const updateLoanSchema = z.object({
   returnedAmount: z.number().min(0).optional(),
   status: z.enum(['PENDING', 'CLOSED']).optional(),
+  paymentMode: z.enum(['CASH', 'ONLINE']).optional(),
+  repaymentMode: z.enum(['CASH', 'ONLINE']).optional(),
   note: z.string().optional().nullable(),
 });
 
@@ -54,6 +58,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       returnedAmount: Number(l.returnedAmount),
       pendingAmount: Number(l.pendingAmount),
       status: l.status,
+      paymentMode: l.paymentMode || 'CASH',
       note: l.note,
     }));
 
@@ -80,6 +85,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const status = pendingDec.lessThanOrEqualTo(0) ? 'CLOSED' : 'PENDING';
     const targetDate = new Date(`${body.date}T00:00:00.000Z`);
+    const pMode = body.paymentMode || body.mode || 'CASH';
 
     const loan = await prisma.loanEntry.create({
       data: {
@@ -92,6 +98,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         returnedAmount: returnedDec,
         pendingAmount: pendingDec.greaterThan(0) ? pendingDec : new Decimal(0),
         status,
+        paymentMode: pMode,
         note: body.note || null,
         updatedAt: new Date(),
       },
@@ -108,6 +115,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         returnedAmount: Number(loan.returnedAmount),
         pendingAmount: Number(loan.pendingAmount),
         status: loan.status,
+        paymentMode: loan.paymentMode,
         note: loan.note,
       },
     });
@@ -152,6 +160,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
         returnedAmount: newReturned,
         pendingAmount: newPending.greaterThan(0) ? newPending : new Decimal(0),
         status: newStatus,
+        paymentMode: body.paymentMode || body.repaymentMode || existing.paymentMode,
         note: body.note !== undefined ? body.note : existing.note,
         updatedAt: new Date(),
       },
@@ -168,6 +177,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
         returnedAmount: Number(updated.returnedAmount),
         pendingAmount: Number(updated.pendingAmount),
         status: updated.status,
+        paymentMode: updated.paymentMode,
         note: updated.note,
       },
     });

@@ -57,7 +57,7 @@ function Settings() {
   const calcTotalAllExp = calcTotalBusinessExp + calcFixedExp;
 
   const calcTotalDrawings = calcCashDrawings + calcUpiDrawings;
-  const calcGrossProfit = calcTotalSales - calcMaterialExp;
+  const calcGrossProfit = (calcTotalSales + calcTotalOpening) - calcMaterialExp;
   const calcNetProfit = calcGrossProfit - calcShopExp - calcFixedExp - calcTotalDrawings;
 
   const calcProfitMargin = calcTotalSales > 0 ? (calcNetProfit / calcTotalSales) * 100 : 0;
@@ -310,11 +310,11 @@ function Settings() {
                 <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>2. Gross Profit</span>
                 <span className="badge badge--info">Margin</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Gross Profit = Total Sales − Material Purchase Exp
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Gross Profit = (Total Sales + Opening Capital Baseline) − Material Purchase Exp
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Measures trading profitability before subtracting shop fixed overheads (Rent, Electricity, Wages).
+                Initial opening capital acts as revenue baseline for material costs.
               </p>
             </div>
 

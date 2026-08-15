@@ -12,6 +12,10 @@ export interface FinanceSummary {
   totalCashSales: Decimal;
   totalOnlineSales: Decimal;
   totalSales: Decimal;
+  openingCashVal: Decimal;
+  openingBankVal: Decimal;
+  totalOpeningVal: Decimal;
+  effectiveTotalSales: Decimal;
   totalMaterialExpenses: Decimal;
   totalShopExpenses: Decimal;
   totalMiscExpenses: Decimal;
@@ -230,7 +234,10 @@ export async function computeFinanceSummary(
   const cashBalance = openingCashVal.plus(totalCashSales).minus(totalCashExpenses).minus(cashWithdrawals);
   const onlineBalance = openingBankVal.plus(totalOnlineSales).minus(totalOnlineExpenses).minus(onlineWithdrawals);
 
-  const grossProfit = totalSales.minus(totalMaterialExpenses);
+  const totalOpeningVal = openingCashVal.plus(openingBankVal);
+  const effectiveTotalSales = totalSales.plus(totalOpeningVal);
+
+  const grossProfit = effectiveTotalSales.minus(totalMaterialExpenses);
   const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses).minus(totalDrawings);
 
   const profitMarginPercent = totalSales.greaterThan(0)
@@ -247,6 +254,10 @@ export async function computeFinanceSummary(
     totalCashSales,
     totalOnlineSales,
     totalSales,
+    openingCashVal,
+    openingBankVal,
+    totalOpeningVal,
+    effectiveTotalSales,
     totalMaterialExpenses,
     totalShopExpenses,
     totalMiscExpenses,

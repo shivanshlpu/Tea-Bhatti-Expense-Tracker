@@ -362,6 +362,43 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Loans Ledger Summary Row (Payables & Receivables) */}
+      <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
+        <div className="card" style={{ borderLeft: '4px solid #ef4444', background: 'var(--color-surface)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>
+              💳 Loans Payable (We Owe)
+            </div>
+            <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate('/loans')}>
+              Manage Loans ➔
+            </button>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#dc2626' }}>
+            {formatCurrency(summary?.pendingLoanTaken || '0')}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.375rem', fontWeight: 600 }}>
+            Total pending money borrowed by the shop from lenders
+          </div>
+        </div>
+
+        <div className="card" style={{ borderLeft: '4px solid #16a34a', background: 'var(--color-surface)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>
+              📥 Loans Receivable (Owed to Us)
+            </div>
+            <button className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => navigate('/loans')}>
+              Manage Loans ➔
+            </button>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#16a34a' }}>
+            {formatCurrency(summary?.pendingLoanGiven || '0')}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.375rem', fontWeight: 600 }}>
+            Total pending money lent out by the shop to borrowers
+          </div>
+        </div>
+      </div>
+
       {/* Retained Business Balance & Withdrawals Row */}
       <div className="grid-3" style={{ marginBottom: '1.5rem' }}>
         <div className="card" style={{ borderLeft: '4px solid var(--color-accent-teal)' }}>
@@ -400,6 +437,74 @@ function Dashboard() {
             <span>Material: {formatCurrency(summary?.totalMaterialExpenses || '0')}</span>
             <span>Shop: {formatCurrency(summary?.totalShopExpenses || '0')}</span>
             <span>Misc: {formatCurrency(summary?.totalMiscExpenses || '0')}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Categorized Payment Method Breakdown Card (Cash vs Online) */}
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
+        <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>💳 Categorized Payment Methods Breakdown (Cash vs Online/UPI)</span>
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+          {/* Cash Payment Mode Card */}
+          <div style={{ background: 'var(--color-background)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#16a34a' }}>💵 Cash Payment Method</span>
+              <span className="badge badge--cash">CASH</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Sales Revenue:</span>
+                <strong>{formatCurrency(summary?.totalCashSales || '0')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Material Costs:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.cashMaterialExpenses || '0')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Overheads & Misc:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(parseFloat(summary?.cashShopExpenses || '0') + parseFloat(summary?.cashMiscExpenses || '0'))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Owner Drawings:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.cashWithdrawals || '0')}</span>
+              </div>
+              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.4rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+                <span>Net Cash in Drawer:</span>
+                <span style={{ color: '#16a34a', fontSize: '1rem' }}>{formatCurrency(summary?.cashBalance || '0')}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Online / UPI Payment Mode Card */}
+          <div style={{ background: 'var(--color-background)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#2563eb' }}>🌐 Online / UPI Payment Method</span>
+              <span className="badge badge--online">ONLINE / UPI</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>UPI / Bank Sales Revenue:</span>
+                <strong>{formatCurrency(summary?.totalOnlineSales || '0')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Online Material Costs:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.onlineMaterialExpenses || '0')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Online Overheads & Rent:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(parseFloat(summary?.onlineShopExpenses || '0') + parseFloat(summary?.onlineMiscExpenses || '0'))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Online Owner Drawings:</span>
+                <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.onlineWithdrawals || '0')}</span>
+              </div>
+              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.4rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+                <span>Net Bank Account Balance:</span>
+                <span style={{ color: '#2563eb', fontSize: '1rem' }}>{formatCurrency(summary?.onlineBalance || '0')}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

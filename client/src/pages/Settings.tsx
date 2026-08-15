@@ -287,20 +287,20 @@ function Settings() {
             </div>
           </div>
 
-          {/* Grid of 11 Formulas */}
+          {/* Grid of 12 Formulas */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             
-            {/* 1. Total Sales */}
+            {/* 1. Total Effective Sales Revenue */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-success)' }}>1. Total Sales Revenue</span>
-                <span className="badge badge--success">Income</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-success)' }}>1. Effective Sales Revenue</span>
+                <span className="badge badge--success">Income Baseline</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Total Sales = Cash Sales + UPI Sales + Card Sales
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Effective Sales = Recorded Sales + Opening Cash + Opening Bank
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Aggregates counter cash, GPay/PhonePe UPI payments, and card swipes. Voided transactions are automatically excluded.
+                Integrates starting opening capital into sales revenue baseline so starting funds support initial material purchases.
               </p>
             </div>
 
@@ -311,136 +311,150 @@ function Settings() {
                 <span className="badge badge--info">Margin</span>
               </div>
               <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Gross Profit = (Total Sales + Opening Capital Baseline) − Material Purchase Exp
+                Gross Profit = Effective Sales Revenue − Material Purchase Exp
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Initial opening capital acts as revenue baseline for material costs.
+                Measures trading profitability after deducting raw material costs (milk, tea leaves, gas, snacks).
               </p>
             </div>
 
-            {/* 3. Fixed & Shop Expenses */}
+            {/* 3. Net Business Profit */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ef4444' }}>3. Fixed & Shop Expenses</span>
-                <span className="badge badge--warning">Overhead</span>
-              </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Fixed Exp = Shop Rent + Electricity + Staff Wages
-              </div>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Recurring overhead costs necessary to operate the cafe premises.
-              </p>
-            </div>
-
-            {/* 4. Net Business Profit */}
-            <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>4. Net Business Profit</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>3. Net Business Profit (Bottom Line)</span>
                 <span className="badge badge--success">Net Bottom Line</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Net Profit = Gross Profit − Shop Exp − Misc Exp − Loan Repayments − Owner Drawings
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Net Profit = Gross Profit − Shop Exp − Misc Exp − Drawings − Net Loans Given − Borrowed Debt Repaid
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                💡 <strong>Net Profit Rule</strong>: Net retained earnings after deducting shop overheads, misc expenses, loan repayments, and owner drawings.
+                💡 <strong>Net Profit Rule</strong>: Final retained earnings after subtracting shop overheads, drawings, net lent loans outstanding, and repaid borrowed debt.
               </p>
             </div>
 
-            {/* 5. Closing Cash Drawer */}
+            {/* 4. Closing Cash Drawer Balance */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>5. Closing Cash Drawer</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>4. Closing Cash Drawer Balance</span>
                 <span className="badge badge--warning">Drawer Cash</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Closing Cash = Opening Cash + Cash Sales − Cash Exp − Cash Drawings
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Closing Cash = Opening Cash + Cash Sales + Cash Loans Recv − Cash Exp − Cash Drawings − Cash Loans Issued − Cash Debt Repaid
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Calculates the exact physical cash in drawer at end of day.
+                Calculates physical cash remaining inside the cash drawer after cash sales, cash expenses, cash drawings, and cash loan movements.
               </p>
             </div>
 
-            {/* 6. Closing Bank Account */}
+            {/* 5. Closing Bank Account Balance */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3b82f6' }}>6. Closing Bank / UPI Balance</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3b82f6' }}>5. Closing Bank / UPI Balance</span>
                 <span className="badge badge--info">Bank Balance</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Closing Bank = Opening Bank + UPI Sales − Online Exp − Online Drawings
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.72rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Closing Bank = Opening Bank + Online Sales + Online Loans Recv − Online Exp − Online Drawings − Online Loans Issued − Online Debt Repaid
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Calculates remaining digital money inside the cafe's bank account.
+                Calculates remaining digital money inside the cafe's bank account or UPI wallet.
               </p>
             </div>
 
-            {/* 7. Cash Available */}
+            {/* 6. Total Retained Business Balance */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text)' }}>7. Cash Available</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text)' }}>6. Total Retained Balance</span>
                 <span className="badge badge--success">Total Liquidity</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Cash Available = Closing Cash + Closing Bank
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Total Balance = Closing Cash Drawer + Closing Bank Account
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Total liquid funds currently available across drawer and bank accounts.
+                Total liquid funds currently available across physical drawer and digital bank accounts.
               </p>
             </div>
 
-            {/* 8. Profit Margin % */}
+            {/* 7. Loan Given (Lending Money Out) */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>8. Profit Margin %</span>
-                <span className="badge badge--info">Ratio</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ef4444' }}>7. Loan Given (Lending Money)</span>
+                <span className="badge badge--warning">Lending Out</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Profit Margin % = (Net Profit / Total Sales) × 100
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Loan Given: Reduces Net Profit & Cash/Bank | Repayments: Add to Net Profit & Cash/Bank
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Percentage of sales converted into profit (formatted to 1 decimal place).
+                Lending money out reduces Net Profit and Cash or Bank balance. When borrower repays, returned funds add back to Net Profit and Cash/Bank.
               </p>
             </div>
 
-            {/* 9. Expense Ratio % */}
+            {/* 8. Loan Taken (Borrowing Money In) */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>9. Expense Ratio %</span>
-                <span className="badge badge--warning">Ratio</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#8b5cf6' }}>8. Loan Taken (Borrowing Money)</span>
+                <span className="badge badge--info">Borrowing In</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Expense Ratio % = (Total Expenses / Total Sales) × 100
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Loan Taken: Increases Cash/Bank Liquidity | Debt Repaid: Reduces Net Profit & Cash/Bank
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Percentage of sales consumed by expenses (formatted to 1 decimal place).
+                Borrowing money increases Cash or Bank liquidity. Repaying borrowed debt reduces Net Profit and Cash or Bank drawer.
               </p>
             </div>
 
-            {/* 10. Pending Loan */}
+            {/* 9. Loans Ledger (Payables vs Receivables) */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#8b5cf6' }}>10. Pending Loan Ledger</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#dc2626' }}>9. Loans Ledger (Payables & Receivables)</span>
                 <span className="badge badge--info">Ledger</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Pending Amount = Loan Amount − Returned Amount
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Payables (We Owe) = ∑ Pending Taken | Receivables (Owed to Us) = ∑ Pending Given
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Auto-updates loan status to CLOSED when pending balance reaches ₹0.
+                Tracks total liabilities owed to lenders vs total assets owed to the cafe by borrowers. Auto-closes when pending reaches ₹0.
               </p>
             </div>
 
-            {/* 11. Auto Carry Forward */}
+            {/* 10. Profit Margin % */}
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>11. Auto-Carry Forward Rule</span>
-                <span className="badge badge--success">Automated</span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>10. Net Profit Margin %</span>
+                <span className="badge badge--info">Ratio</span>
               </div>
-              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
-                Next Day Opening = Previous Day Closing Balance
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Profit Margin % = (Net Profit / Effective Sales) × 100
               </div>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                Automatically prefills tomorrow's opening cash & bank drawer.
+                Percentage of effective sales revenue converted into bottom-line profit (formatted to 1 decimal place).
+              </p>
+            </div>
+
+            {/* 11. Expense Ratio % */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f59e0b' }}>11. Expense Ratio %</span>
+                <span className="badge badge--warning">Ratio</span>
+              </div>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Expense Ratio % = (Total Expenses / Effective Sales) × 100
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Percentage of effective sales revenue consumed by expenses (formatted to 1 decimal place).
+              </p>
+            </div>
+
+            {/* 12. Auto Carry Forward */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>12. Auto-Carry Forward Rule</span>
+                <span className="badge badge--success">Automated</span>
+              </div>
+              <div style={{ background: 'var(--color-background)', padding: '0.65rem', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.74rem', border: '1px solid var(--color-border)', marginBottom: '0.5rem' }}>
+                Tomorrow Opening Cash = Today Closing Cash | Tomorrow Opening Bank = Today Closing Bank
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                Automatically prefills tomorrow's opening cash drawer and bank account starting balances.
               </p>
             </div>
 

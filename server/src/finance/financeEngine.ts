@@ -21,16 +21,31 @@ export interface FinanceSummary {
   totalMiscExpenses: Decimal;
   totalExpenses: Decimal;
   fixedExpenses: Decimal;
+  cashGrossProfit: Decimal;
+  onlineGrossProfit: Decimal;
   grossProfit: Decimal;
+  cashNetProfit: Decimal;
+  onlineNetProfit: Decimal;
   netProfit: Decimal;
   cashWithdrawals: Decimal;
   onlineWithdrawals: Decimal;
   totalWithdrawals: Decimal;
   totalDrawings: Decimal;
+  cashLoanTaken: Decimal;
+  onlineLoanTaken: Decimal;
   loanTaken: Decimal;
+  cashLoanGiven: Decimal;
+  onlineLoanGiven: Decimal;
   loanGiven: Decimal;
+  cashLoanTakenReturned: Decimal;
+  onlineLoanTakenReturned: Decimal;
+  loanTakenReturned: Decimal;
+  cashLoanGivenReturned: Decimal;
+  onlineLoanGivenReturned: Decimal;
+  loanGivenReturned: Decimal;
   pendingLoanTaken: Decimal;
   pendingLoanGiven: Decimal;
+  grossMarginPercent: Decimal;
   profitMarginPercent: Decimal;
   expenseRatioPercent: Decimal;
   remainingBusinessBalance: Decimal;
@@ -56,7 +71,6 @@ export async function computeFinanceSummary(
 ): Promise<FinanceSummary> {
   const { from, to } = range;
   const dateFilter = { gte: from, lte: to };
-  const cumulativeFilter = { lte: to };
   const baseWhere = { shopId, voidedAt: null };
 
   // ── Period Sales ──
@@ -217,7 +231,7 @@ export async function computeFinanceSummary(
   for (const l of loanEntries) {
     const amt = new Decimal(l.amount.toString());
     const ret = new Decimal(l.returnedAmount.toString());
-    const mode = l.paymentMode || 'CASH';
+    const mode = (l.paymentMode || 'CASH').toUpperCase();
 
     if (l.type === 'GIVEN') {
       if (mode === 'ONLINE') {
@@ -246,23 +260,32 @@ export async function computeFinanceSummary(
   const pendingLoanTaken = sumOrZero(pendingTakenAgg._sum.pendingAmount);
   const pendingLoanGiven = sumOrZero(pendingGivenAgg._sum.pendingAmount);
 
-  // ── Cumulative Balances & Live Drawer Math ──
-  const latestBalance = await prisma.dailyBalance.findFirst({
-    where: { shopId, date: cumulativeFilter },
+  // ── Period Opening Balances ──
+  // Opening balance at the start of the period
+  const startDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const balanceOnOrBefore = await prisma.dailyBalance.findFirst({
+    where: { shopId, date: { lte: startDay } },
     orderBy: { date: 'desc' },
   });
 
   let openingCashVal = new Decimal(0);
   let openingBankVal = new Decimal(0);
 
-  if (latestBalance) {
-    openingCashVal = new Decimal(latestBalance.openingCash.toString());
-    openingBankVal = new Decimal(latestBalance.openingBank.toString());
+  if (balanceOnOrBefore) {
+    const isSameDay = balanceOnOrBefore.date.toISOString().slice(0, 10) === startDay.toISOString().slice(0, 10);
+    if (isSameDay) {
+      openingCashVal = new Decimal(balanceOnOrBefore.openingCash.toString());
+      openingBankVal = new Decimal(balanceOnOrBefore.openingBank.toString());
+    } else {
+      openingCashVal = new Decimal(balanceOnOrBefore.closingCash.toString());
+      openingBankVal = new Decimal(balanceOnOrBefore.closingBank.toString());
+    }
   }
 
   const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
   const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
 
+  // ── Cash Flow & Live Drawer Math ──
   // Cash Balance: Opening + Cash Sales + Cash Loans Borrowed + Cash Loan Repayments Recv − Cash Exp − Cash Drawings − Cash Loans Issued − Cash Debt Repaid
   const cashBalance = openingCashVal
     .plus(totalCashSales)
@@ -286,16 +309,22 @@ export async function computeFinanceSummary(
   const totalOpeningVal = openingCashVal.plus(openingBankVal);
   const effectiveTotalSales = totalSales.plus(totalOpeningVal);
 
-  const grossProfit = effectiveTotalSales.minus(totalMaterialExpenses);
+  // ── Profit & Loss (P&L Income Statement) ──
+  // Gross Profit = Sales Revenue - Cost of Goods Sold (Direct Material Expenses)
+  const cashGrossProfit = totalCashSales.minus(cashMaterialExpenses);
+  const onlineGrossProfit = totalOnlineSales.minus(onlineMaterialExpenses);
+  const grossProfit = totalSales.minus(totalMaterialExpenses);
 
-  // Net Profit: Gross Profit − Shop Exp − Misc Exp − Owner Drawings − Net Loans Issued Outstanding − Borrowed Loans Repaid
-  const netLoanGivenImpact = loanGiven.minus(loanGivenReturned);
-  const netProfit = grossProfit
-    .minus(totalShopExpenses)
-    .minus(totalMiscExpenses)
-    .minus(totalDrawings)
-    .minus(netLoanGivenImpact)
-    .minus(loanTakenReturned);
+  // Operating Net Profit = Gross Profit - Operating Overheads (Shop Expenses + Misc Expenses)
+  const cashShopTotal = cashShopExpenses.plus(cashMiscExpenses);
+  const onlineShopTotal = onlineShopExpenses.plus(onlineMiscExpenses);
+  const cashNetProfit = cashGrossProfit.minus(cashShopTotal);
+  const onlineNetProfit = onlineGrossProfit.minus(onlineShopTotal);
+  const netProfit = grossProfit.minus(totalShopExpenses).minus(totalMiscExpenses);
+
+  const grossMarginPercent = totalSales.greaterThan(0)
+    ? grossProfit.dividedBy(totalSales).times(100)
+    : new Decimal(0);
 
   const profitMarginPercent = totalSales.greaterThan(0)
     ? netProfit.dividedBy(totalSales).times(100)
@@ -320,16 +349,31 @@ export async function computeFinanceSummary(
     totalMiscExpenses,
     totalExpenses,
     fixedExpenses,
+    cashGrossProfit,
+    onlineGrossProfit,
     grossProfit,
+    cashNetProfit,
+    onlineNetProfit,
     netProfit,
     cashWithdrawals,
     onlineWithdrawals,
     totalWithdrawals,
     totalDrawings,
+    cashLoanTaken,
+    onlineLoanTaken,
     loanTaken,
+    cashLoanGiven,
+    onlineLoanGiven,
     loanGiven,
+    cashLoanTakenReturned,
+    onlineLoanTakenReturned,
+    loanTakenReturned,
+    cashLoanGivenReturned,
+    onlineLoanGivenReturned,
+    loanGivenReturned,
     pendingLoanTaken,
     pendingLoanGiven,
+    grossMarginPercent,
     profitMarginPercent,
     expenseRatioPercent,
     remainingBusinessBalance,

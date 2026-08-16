@@ -171,16 +171,15 @@ export function generatePdfKitReport(data: ReportExportData): Promise<Buffer> {
       let curPnlY = pnlTableY + 16;
 
       const pnlRows: Array<{ label: string; basis: string; val: number; isSubtotal?: boolean; isHighlight?: boolean; isNegative?: boolean }> = [
-        { label: 'Counter Cash Sales Revenue', basis: 'Recorded physical cash transactions', val: totalCashSales },
-        { label: 'Online / UPI Sales Revenue', basis: 'GPay, PhonePe, QR & Bank credits', val: totalOnlineSales },
-        { label: 'Opening Capital Revenue Baseline', basis: 'Starting Cash + Bank balance', val: totalOpening },
-        { label: 'TOTAL EFFECTIVE TRADING REVENUE', basis: 'Recorded Sales + Opening Capital', val: effectiveSales, isSubtotal: true },
-        { label: 'Cost of Goods Sold (Raw Material COGS)', basis: 'Milk, Tea Leaves, Sugar, Gas, Snacks', val: totalMaterialExp, isNegative: true },
-        { label: 'GROSS TRADING PROFIT', basis: `Gross Margin: ${grossMarginPct.toFixed(1)}% of Sales`, val: grossProfit, isHighlight: true },
-        { label: 'Shop Operating Overhead Expenses', basis: 'Shop Rent, Electricity & Staff Wages', val: totalShopExp, isNegative: true },
+        { label: 'Counter Cash Sales Revenue', basis: 'Recorded physical counter cash sales', val: totalCashSales },
+        { label: 'Online / UPI Sales Revenue', basis: 'UPI, QR, Card & Bank deposits', val: totalOnlineSales },
+        { label: 'TOTAL GROSS SALES REVENUE', basis: 'Cash Sales + Online / UPI Sales', val: totalSales, isSubtotal: true },
+        { label: 'Cost of Goods Sold (Raw Material COGS)', basis: 'Milk, Tea, Sugar, Gas, Snacks & Supplies', val: totalMaterialExp, isNegative: true },
+        { label: 'GROSS TRADING PROFIT', basis: `Gross Margin: ${grossMarginPct.toFixed(1)}% of Sales`, val: grossProfit, isHighlight: true, isSubtotal: true },
+        { label: 'Shop Operating Overhead Expenses', basis: 'Shop Rent, Electricity, Salaries & Utilities', val: totalShopExp, isNegative: true },
         { label: 'Miscellaneous Expenses', basis: 'Daily maintenance, repairs & consumables', val: totalMiscExp, isNegative: true },
-        { label: 'Owner Drawings & Loan Repayments', basis: 'Cash/Online personal withdrawals & debt repaid', val: totalDrawings, isNegative: true },
-        { label: 'NET BUSINESS PROFIT / (LOSS)', basis: `Net Margin: ${netMarginPct.toFixed(1)}% of Sales`, val: netProfit, isHighlight: true, isSubtotal: true },
+        { label: 'TOTAL OPERATING EXPENSES', basis: 'Shop Expenses + Misc Expenses', val: totalShopExp + totalMiscExp, isNegative: true, isSubtotal: true },
+        { label: 'NET OPERATING BUSINESS PROFIT', basis: `Net Margin: ${netMarginPct.toFixed(1)}% of Sales`, val: netProfit, isHighlight: true, isSubtotal: true },
       ];
 
       pnlRows.forEach((row, i) => {

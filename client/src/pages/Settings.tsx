@@ -224,15 +224,30 @@ function Settings() {
 
           {/* Theme Card */}
           <div className="card">
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Theme Preference</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--color-text)' }}>
+              🎨 Appearance & Theme Preference
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
+              Choose your preferred visual mode for Tea Bhatti Expense Tracker.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <div style={{ fontWeight: 700 }}>Active Color Theme</div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                  {theme === 'light' ? 'Light mode (Default)' : 'Dark mode'}
+                <div style={{ fontWeight: 700, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>Active Theme:</span>
+                  <span className="badge" style={{
+                    background: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'var(--color-brand-light)',
+                    color: theme === 'dark' ? '#A78BFA' : 'var(--color-brand)',
+                    fontSize: '0.8rem',
+                    padding: '0.3rem 0.75rem'
+                  }}>
+                    {theme === 'light' ? '☀️ Light Mode (Default)' : '🌙 Dark Mode'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.35rem' }}>
+                  Theme selection is saved automatically to your device.
                 </div>
               </div>
-              <button className="btn btn--outline" onClick={toggleTheme}>
+              <button className="btn btn-outline" onClick={toggleTheme} style={{ minWidth: '160px' }}>
                 {theme === 'light' ? '🌙 Switch to Dark' : '☀️ Switch to Light'}
               </button>
             </div>

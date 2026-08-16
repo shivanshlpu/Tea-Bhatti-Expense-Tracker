@@ -12,6 +12,12 @@
     <meta name="apple-mobile-web-app-title" content="Tea Bhatti Expense Tracker" />
     <meta name="description" content="Tea Bhatti Expense Tracker — Financial Management & Ledger Tracker for Tea Bhatti Cafe" />
     <title>Tea Bhatti Expense Tracker</title>
+    <script>
+      try {
+        var t = localStorage.getItem('shop-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

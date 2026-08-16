@@ -6,7 +6,7 @@ import { authApi } from '../api/client';
 function Layout() {
   const shop = useAuthStore((s) => s.shop);
   const logout = useAuthStore((s) => s.logout);
-  const { sidebarOpen, toggleSidebar, toasts, removeToast } = useShopStore();
+  const { theme, toggleTheme, sidebarOpen, toggleSidebar, toasts, removeToast } = useShopStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,27 +42,47 @@ function Layout() {
             </div>
           </div>
         </div>
-        <button
-          onClick={toggleSidebar}
-          aria-label="Toggle menu"
-          style={{
-            marginLeft: 'auto',
-            flexShrink: 0,
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.25rem',
-            color: 'var(--color-text)',
-            cursor: 'pointer',
-          }}
-        >
-          ☰
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle Theme"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.1rem',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+          <button
+            onClick={toggleSidebar}
+            aria-label="Toggle menu"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.25rem',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            ☰
+          </button>
+        </div>
       </header>
 
       {/* Mobile Drawer Overlay */}
@@ -129,6 +149,19 @@ function Layout() {
           </NavLink>
 
           <div className="sidebar__section-title">Account</div>
+          <button
+            className="sidebar__link"
+            onClick={toggleTheme}
+            style={{
+              cursor: 'pointer',
+              textAlign: 'left',
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+            }}
+          >
+            <span>{theme === 'light' ? '🌙' : '☀️'}</span> {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          </button>
           <NavLink to="/settings" className={navLinkClass} onClick={() => useShopStore.getState().setSidebarOpen(false)}>
             <span>⚙️</span> Settings
           </NavLink>

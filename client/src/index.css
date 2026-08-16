@@ -8,6 +8,19 @@
   --color-brand-light: #FFF0EC;
   --color-brand-text: #FFFFFF;
 
+  /* Aliases for components & legacy utilities */
+  --color-primary: var(--color-brand);
+  --color-primary-hover: var(--color-brand-hover);
+  --color-primary-light: var(--color-brand-light);
+  --color-background: var(--color-bg);
+  --color-bg-secondary: #F3F4F6;
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F5A623;
+  --color-info: #3B82F6;
+  --color-neutral-text: var(--color-text);
+  --color-neutral-muted: var(--color-text-muted);
+
   /* Secondary Accents */
   --color-accent-yellow: #F5A623;    /* Golden Amber */
   --color-accent-teal: #10B981;      /* Emerald Green */
@@ -48,6 +61,80 @@
   --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ─── Dark Theme Variable Overrides ─── */
+[data-theme="dark"] {
+  /* Primary & Brand Colors */
+  --color-brand: #EF6C48;
+  --color-brand-hover: #F27251;
+  --color-brand-light: rgba(239, 108, 72, 0.18);
+  --color-brand-text: #FFFFFF;
+
+  --color-primary: var(--color-brand);
+  --color-primary-hover: var(--color-brand-hover);
+  --color-primary-light: var(--color-brand-light);
+
+  --color-accent-yellow: #FBBF24;
+  --color-accent-teal: #34D399;
+  --color-accent-blue: #60A5FA;
+  --color-accent-purple: #A78BFA;
+
+  /* Surface & Background */
+  --color-bg: #0F1117;
+  --color-background: #0F1117;
+  --color-bg-secondary: #1E202B;
+
+  --color-surface: #181A22;
+  --color-surface-hover: #222531;
+  --color-border: #2A2D3D;
+  --color-border-hover: #3D4258;
+
+  /* Typography Colors */
+  --color-text: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-neutral-text: var(--color-text);
+  --color-neutral-muted: var(--color-text-muted);
+
+  /* Financial Semantic Colors */
+  --color-cash: #34D399;
+  --color-online: #60A5FA;
+  --color-gross-profit: #A78BFA;
+  --color-net-profit-pos: #34D399;
+  --color-net-profit-neg: #F87171;
+  --color-success: #34D399;
+  --color-danger: #F87171;
+  --color-warning: #FBBF24;
+  --color-info: #60A5FA;
+
+  /* Smooth Soft Shadows for Dark Mode */
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* ─── Dark Mode Specific Component Overrides ─── */
+[data-theme="dark"] .badge--cash {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34D399;
+}
+[data-theme="dark"] .badge--online {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60A5FA;
+}
+[data-theme="dark"] .badge--voided {
+  background: rgba(248, 113, 113, 0.15);
+  color: #F87171;
+}
+[data-theme="dark"] .select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+[data-theme="dark"] input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+[data-theme="dark"] ::placeholder {
+  color: var(--color-text-muted);
 }
 
 /* ─── Global Resets & Canvas ─── */
@@ -259,35 +346,48 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.btn-primary {
+.btn-primary, .btn--primary {
   background: var(--color-brand);
   color: #FFFFFF;
   box-shadow: 0 4px 12px rgba(239, 90, 52, 0.25);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled), .btn--primary:hover:not(:disabled) {
   background: var(--color-brand-hover);
   box-shadow: 0 6px 16px rgba(239, 90, 52, 0.35);
 }
 
-.btn-secondary {
+.btn-secondary, .btn--secondary {
   background: var(--color-surface);
   color: var(--color-text);
   border-color: var(--color-border);
 }
 
-.btn-danger {
+.btn-outline, .btn--outline {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+}
+
+.btn-outline:hover:not(:disabled), .btn--outline:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-brand);
+}
+
+.btn-danger, .btn--danger {
   background: var(--color-net-profit-neg);
   color: #FFFFFF;
 }
 
-.btn-ghost {
+.btn-ghost, .btn--ghost {
   background: transparent;
   color: var(--color-text-secondary);
 }
 
-.btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8125rem; min-height: 36px; }
-.btn-lg { padding: 0.8rem 1.6rem; font-size: 1rem; min-height: 48px; }
+.btn-sm, .btn--sm { padding: 0.4rem 0.9rem; font-size: 0.8125rem; min-height: 36px; }
+.btn-xs, .btn--xs { padding: 0.25rem 0.6rem; font-size: 0.75rem; min-height: 28px; }
+.btn-lg, .btn--lg { padding: 0.8rem 1.6rem; font-size: 1rem; min-height: 48px; }
 
 /* ─── Form Inputs ─── */
 .input-group {

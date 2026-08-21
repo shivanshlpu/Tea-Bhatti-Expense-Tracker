@@ -51,6 +51,8 @@ export interface FinanceSummary {
   remainingBusinessBalance: Decimal;
   cashBalance: Decimal;
   onlineBalance: Decimal;
+  periodNetCashFlow: Decimal;
+  periodNetOnlineFlow: Decimal;
   cashMaterialExpenses: Decimal;
   onlineMaterialExpenses: Decimal;
   cashShopExpenses: Decimal;
@@ -263,17 +265,26 @@ export async function computeFinanceSummary(
   // ── Period Opening Balances ──
   // Opening balance at the start of the period
   const startDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  const balanceOnOrBefore = await prisma.dailyBalance.findFirst({
+  let balanceOnOrBefore = await prisma.dailyBalance.findFirst({
     where: { shopId, date: { lte: startDay } },
     orderBy: { date: 'desc' },
   });
+
+  // If no balance exists on or before startDay (e.g. Month/Year view before initial setup date),
+  // pick the earliest recorded initial DailyBalance so we preserve the opening float
+  if (!balanceOnOrBefore) {
+    balanceOnOrBefore = await prisma.dailyBalance.findFirst({
+      where: { shopId },
+      orderBy: { date: 'asc' },
+    });
+  }
 
   let openingCashVal = new Decimal(0);
   let openingBankVal = new Decimal(0);
 
   if (balanceOnOrBefore) {
     const isSameDay = balanceOnOrBefore.date.toISOString().slice(0, 10) === startDay.toISOString().slice(0, 10);
-    if (isSameDay) {
+    if (isSameDay || balanceOnOrBefore.date > startDay) {
       openingCashVal = new Decimal(balanceOnOrBefore.openingCash.toString());
       openingBankVal = new Decimal(balanceOnOrBefore.openingBank.toString());
     } else {
@@ -285,10 +296,8 @@ export async function computeFinanceSummary(
   const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
   const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);
 
-  // ── Cash Flow & Live Drawer Math ──
-  // Cash Balance: Opening + Cash Sales + Cash Loans Borrowed + Cash Loan Repayments Recv − Cash Exp − Cash Drawings − Cash Loans Issued − Cash Debt Repaid
-  const cashBalance = openingCashVal
-    .plus(totalCashSales)
+  // ── Period Net Cash Flow Math ──
+  const periodNetCashFlow = totalCashSales
     .plus(cashLoanTaken)
     .plus(cashLoanGivenReturned)
     .minus(totalCashExpenses)
@@ -296,15 +305,20 @@ export async function computeFinanceSummary(
     .minus(cashLoanGiven)
     .minus(cashLoanTakenReturned);
 
-  // Online Balance: Opening + Online Sales + Online Loans Borrowed + Online Loan Repayments Recv − Online Exp − Online Drawings − Online Loans Issued − Online Debt Repaid
-  const onlineBalance = openingBankVal
-    .plus(totalOnlineSales)
+  const periodNetOnlineFlow = totalOnlineSales
     .plus(onlineLoanTaken)
     .plus(onlineLoanGivenReturned)
     .minus(totalOnlineExpenses)
     .minus(onlineWithdrawals)
     .minus(onlineLoanGiven)
     .minus(onlineLoanTakenReturned);
+
+  // ── Cash Flow & Drawer Math ──
+  // Cash Balance: Opening + Net Period Cash Flow
+  const cashBalance = openingCashVal.plus(periodNetCashFlow);
+
+  // Online Balance: Opening + Net Period Online Flow
+  const onlineBalance = openingBankVal.plus(periodNetOnlineFlow);
 
   const totalOpeningVal = openingCashVal.plus(openingBankVal);
   const effectiveTotalSales = totalSales.plus(totalOpeningVal);
@@ -379,6 +393,8 @@ export async function computeFinanceSummary(
     remainingBusinessBalance,
     cashBalance,
     onlineBalance,
+    periodNetCashFlow,
+    periodNetOnlineFlow,
     cashMaterialExpenses,
     onlineMaterialExpenses,
     cashShopExpenses,

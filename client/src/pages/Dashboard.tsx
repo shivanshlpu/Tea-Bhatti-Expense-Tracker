@@ -192,6 +192,17 @@ function Dashboard() {
   const expenseRatio = totalSalesNum > 0 ? (totalExpensesNum / totalSalesNum) * 100 : 0;
   const mtdNetMargin = mtdSalesNum > 0 ? (mtdNetProfitNum / mtdSalesNum) * 100 : 0;
 
+  const isYearView = range === 'year';
+  const isWeekView = range === 'week';
+  const cumulativeLabelPrefix = isYearView ? 'YTD' : isWeekView ? 'WTD' : 'MTD';
+  const cumulativeFullLabel = isYearView ? 'Year-To-Date (YTD)' : isWeekView ? 'Week-To-Date (WTD)' : 'Month-To-Date (MTD)';
+
+  const cashBalNum = parseFloat(summary?.cashBalance || '0');
+  const onlineBalNum = parseFloat(summary?.onlineBalance || '0');
+  const retainedBalNum = parseFloat(summary?.remainingBusinessBalance || '0');
+  const periodCashNetNum = parseFloat(summary?.periodNetCashFlow || '0');
+  const periodOnlineNetNum = parseFloat(summary?.periodNetOnlineFlow || '0');
+
   const currentRangeText = rangeLabelText(range, selectedDate);
 
   return (
@@ -279,7 +290,7 @@ function Dashboard() {
             </div>
 
             <div style={{ background: 'var(--color-bg-surface)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Month-To-Date (MTD) Sales</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{cumulativeFullLabel} Sales</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#2563eb' }}>
                 {formatCurrency(mtdSalesNum)}
               </div>
@@ -293,7 +304,7 @@ function Dashboard() {
             </div>
 
             <div style={{ background: 'var(--color-bg-surface)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>MTD Net Profit</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{cumulativeLabelPrefix} Net Profit</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: mtdNetProfitNum >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>
                 {formatCurrency(mtdNetProfitNum)}
               </div>
@@ -310,8 +321,10 @@ function Dashboard() {
             {formatCurrency(summary?.totalCashSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>MTD Cash Sales: {formatCurrency(mtdCashSalesNum)}</span>
-            <span style={{ color: 'var(--color-cash)', fontWeight: 700 }}>Total Drawer Cash: {formatCurrency(summary?.cashBalance || '0')}</span>
+            <span>{cumulativeLabelPrefix} Cash Sales: {formatCurrency(mtdCashSalesNum)}</span>
+            <span style={{ color: cashBalNum >= 0 ? 'var(--color-cash)' : '#ef4444', fontWeight: 700 }}>
+              Total Drawer Cash: {formatCurrency(summary?.cashBalance || '0')}
+            </span>
           </div>
         </div>
 
@@ -321,8 +334,10 @@ function Dashboard() {
             {formatCurrency(summary?.totalOnlineSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>MTD Online Sales: {formatCurrency(mtdOnlineSalesNum)}</span>
-            <span style={{ color: 'var(--color-online)', fontWeight: 700 }}>Total Bank Balance: {formatCurrency(summary?.onlineBalance || '0')}</span>
+            <span>{cumulativeLabelPrefix} Online Sales: {formatCurrency(mtdOnlineSalesNum)}</span>
+            <span style={{ color: onlineBalNum >= 0 ? 'var(--color-online)' : '#ef4444', fontWeight: 700 }}>
+              Total Bank Balance: {formatCurrency(summary?.onlineBalance || '0')}
+            </span>
           </div>
         </div>
 
@@ -332,7 +347,7 @@ function Dashboard() {
             {formatCurrency(summary?.totalSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>MTD Revenue: {formatCurrency(mtdSalesNum)}</span>
+            <span>{cumulativeLabelPrefix} Revenue: {formatCurrency(mtdSalesNum)}</span>
             <span>Cash: {formatCurrency(summary?.totalCashSales || '0')} | Online: {formatCurrency(summary?.totalOnlineSales || '0')}</span>
           </div>
         </div>
@@ -344,7 +359,7 @@ function Dashboard() {
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
             <span>Gross Margin: {grossProfitMargin.toFixed(1)}% of Sales</span>
-            <span>MTD Gross Profit: {formatCurrency(mtdGrossProfitNum)}</span>
+            <span>{cumulativeLabelPrefix} Gross Profit: {formatCurrency(mtdGrossProfitNum)}</span>
           </div>
         </div>
 
@@ -357,7 +372,7 @@ function Dashboard() {
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
             <span>Net Margin: {netProfitMargin.toFixed(1)}% of Sales</span>
-            <span style={{ color: mtdNetProfitNum >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>MTD Net Profit: {formatCurrency(mtdNetProfitNum)} ({mtdNetMargin.toFixed(1)}%)</span>
+            <span style={{ color: mtdNetProfitNum >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>{cumulativeLabelPrefix} Net Profit: {formatCurrency(mtdNetProfitNum)} ({mtdNetMargin.toFixed(1)}%)</span>
           </div>
         </div>
       </div>
@@ -405,11 +420,14 @@ function Dashboard() {
           <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
             Total Retained Business Balance (Cash Drawer + Bank Account)
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-teal)' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: retainedBalNum >= 0 ? 'var(--color-accent-teal)' : '#ef4444' }}>
             {formatCurrency(summary?.remainingBusinessBalance || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.375rem', fontWeight: 600 }}>
-            Cash Drawer: {formatCurrency(summary?.cashBalance || '0')} | Bank Account: {formatCurrency(summary?.onlineBalance || '0')}
+            <span>Cash Drawer: </span>
+            <span style={{ color: cashBalNum >= 0 ? '#16a34a' : '#ef4444', fontWeight: 700 }}>{formatCurrency(summary?.cashBalance || '0')}</span>
+            <span> | Bank Account: </span>
+            <span style={{ color: onlineBalNum >= 0 ? '#2563eb' : '#ef4444', fontWeight: 700 }}>{formatCurrency(summary?.onlineBalance || '0')}</span>
           </div>
         </div>
 
@@ -455,24 +473,34 @@ function Dashboard() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Sales Revenue:</span>
-                <strong>{formatCurrency(summary?.totalCashSales || '0')}</strong>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Opening / Starting Cash:</span>
+                <strong>{formatCurrency(summary?.openingCashVal || '0')}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Material Costs:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(+) Cash Sales Revenue:</span>
+                <strong style={{ color: '#16a34a' }}>+{formatCurrency(summary?.totalCashSales || '0')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Cash Material Costs:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.cashMaterialExpenses || '0')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Overheads & Misc:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Cash Overheads & Misc:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(parseFloat(summary?.cashShopExpenses || '0') + parseFloat(summary?.cashMiscExpenses || '0'))}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Cash Owner Drawings:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Cash Owner Drawings:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.cashWithdrawals || '0')}</span>
               </div>
+              <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '0.35rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Net Cash Flow ({currentRangeText}):</span>
+                <span style={{ color: periodCashNetNum >= 0 ? '#16a34a' : '#dc2626' }}>
+                  {periodCashNetNum >= 0 ? '+' : ''}{formatCurrency(summary?.periodNetCashFlow || '0')}
+                </span>
+              </div>
               <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.4rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
-                <span>Net Cash in Drawer:</span>
-                <span style={{ color: '#16a34a', fontSize: '1rem' }}>{formatCurrency(summary?.cashBalance || '0')}</span>
+                <span>Closing Drawer Cash:</span>
+                <span style={{ color: cashBalNum >= 0 ? '#16a34a' : '#dc2626', fontSize: '1rem' }}>{formatCurrency(summary?.cashBalance || '0')}</span>
               </div>
             </div>
           </div>
@@ -485,24 +513,34 @@ function Dashboard() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>UPI / Bank Sales Revenue:</span>
-                <strong>{formatCurrency(summary?.totalOnlineSales || '0')}</strong>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Opening / Starting Bank:</span>
+                <strong>{formatCurrency(summary?.openingBankVal || '0')}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Online Material Costs:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(+) UPI / Bank Sales:</span>
+                <strong style={{ color: '#2563eb' }}>+{formatCurrency(summary?.totalOnlineSales || '0')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Online Material Costs:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.onlineMaterialExpenses || '0')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Online Overheads & Rent:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Online Overheads & Rent:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(parseFloat(summary?.onlineShopExpenses || '0') + parseFloat(summary?.onlineMiscExpenses || '0'))}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Online Owner Drawings:</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>(-) Online Owner Drawings:</span>
                 <span style={{ color: '#dc2626' }}>-{formatCurrency(summary?.onlineWithdrawals || '0')}</span>
               </div>
+              <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '0.35rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Net Online Flow ({currentRangeText}):</span>
+                <span style={{ color: periodOnlineNetNum >= 0 ? '#2563eb' : '#dc2626' }}>
+                  {periodOnlineNetNum >= 0 ? '+' : ''}{formatCurrency(summary?.periodNetOnlineFlow || '0')}
+                </span>
+              </div>
               <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.4rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
-                <span>Net Bank Account Balance:</span>
-                <span style={{ color: '#2563eb', fontSize: '1rem' }}>{formatCurrency(summary?.onlineBalance || '0')}</span>
+                <span>Closing Bank Account Balance:</span>
+                <span style={{ color: onlineBalNum >= 0 ? '#2563eb' : '#dc2626', fontSize: '1rem' }}>{formatCurrency(summary?.onlineBalance || '0')}</span>
               </div>
             </div>
           </div>

@@ -290,23 +290,29 @@ function Dashboard() {
             </div>
 
             <div style={{ background: 'var(--color-bg-surface)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{cumulativeFullLabel} Sales</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#2563eb' }}>
-                {formatCurrency(mtdSalesNum)}
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                {range === 'month' ? 'Gross Trading Profit' : 'Month-To-Date (MTD) Sales'}
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: range === 'month' ? 'var(--color-gross-profit)' : '#2563eb' }}>
+                {formatCurrency(range === 'month' ? grossProfitNum : mtdSalesNum)}
               </div>
             </div>
 
             <div style={{ background: 'var(--color-bg-surface)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Net Margin</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                {range === 'month' ? 'Gross Margin' : 'Net Margin'}
+              </div>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, color: isNetProfitPositive ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>
-                {netProfitMargin.toFixed(1)}%
+                {range === 'month' ? `${grossProfitMargin.toFixed(1)}%` : `${netProfitMargin.toFixed(1)}%`}
               </div>
             </div>
 
             <div style={{ background: 'var(--color-bg-surface)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>{cumulativeLabelPrefix} Net Profit</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: mtdNetProfitNum >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>
-                {formatCurrency(mtdNetProfitNum)}
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                {range === 'month' ? 'Month Net Profit' : 'MTD Net Profit'}
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: (range === 'month' ? netProfitNum : mtdNetProfitNum) >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>
+                {formatCurrency(range === 'month' ? netProfitNum : mtdNetProfitNum)}
               </div>
             </div>
           </div>
@@ -321,7 +327,11 @@ function Dashboard() {
             {formatCurrency(summary?.totalCashSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>{cumulativeLabelPrefix} Cash Sales: {formatCurrency(mtdCashSalesNum)}</span>
+            <span>
+              {range === 'month'
+                ? `Share: ${totalSalesNum > 0 ? ((parseFloat(summary?.totalCashSales || '0') / totalSalesNum) * 100).toFixed(1) : 0}% of Sales`
+                : `MTD Cash Sales: ${formatCurrency(mtdCashSalesNum)}`}
+            </span>
             <span style={{ color: cashBalNum >= 0 ? 'var(--color-cash)' : '#ef4444', fontWeight: 700 }}>
               Total Drawer Cash: {formatCurrency(summary?.cashBalance || '0')}
             </span>
@@ -334,7 +344,11 @@ function Dashboard() {
             {formatCurrency(summary?.totalOnlineSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>{cumulativeLabelPrefix} Online Sales: {formatCurrency(mtdOnlineSalesNum)}</span>
+            <span>
+              {range === 'month'
+                ? `Share: ${totalSalesNum > 0 ? ((parseFloat(summary?.totalOnlineSales || '0') / totalSalesNum) * 100).toFixed(1) : 0}% of Sales`
+                : `MTD Online Sales: ${formatCurrency(mtdOnlineSalesNum)}`}
+            </span>
             <span style={{ color: onlineBalNum >= 0 ? 'var(--color-online)' : '#ef4444', fontWeight: 700 }}>
               Total Bank Balance: {formatCurrency(summary?.onlineBalance || '0')}
             </span>
@@ -347,7 +361,11 @@ function Dashboard() {
             {formatCurrency(summary?.totalSales || '0')}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            <span>{cumulativeLabelPrefix} Revenue: {formatCurrency(mtdSalesNum)}</span>
+            <span>
+              {range === 'month'
+                ? `Total Transactions Revenue`
+                : `MTD Revenue: ${formatCurrency(mtdSalesNum)}`}
+            </span>
             <span>Cash: {formatCurrency(summary?.totalCashSales || '0')} | Online: {formatCurrency(summary?.totalOnlineSales || '0')}</span>
           </div>
         </div>
@@ -359,7 +377,11 @@ function Dashboard() {
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
             <span>Gross Margin: {grossProfitMargin.toFixed(1)}% of Sales</span>
-            <span>{cumulativeLabelPrefix} Gross Profit: {formatCurrency(mtdGrossProfitNum)}</span>
+            <span>
+              {range === 'month'
+                ? `Material COGS: ${formatCurrency(summary?.totalMaterialExpenses || '0')}`
+                : `MTD Gross Profit: ${formatCurrency(mtdGrossProfitNum)}`}
+            </span>
           </div>
         </div>
 
@@ -372,7 +394,11 @@ function Dashboard() {
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
             <span>Net Margin: {netProfitMargin.toFixed(1)}% of Sales</span>
-            <span style={{ color: mtdNetProfitNum >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>{cumulativeLabelPrefix} Net Profit: {formatCurrency(mtdNetProfitNum)} ({mtdNetMargin.toFixed(1)}%)</span>
+            <span style={{ color: (range === 'month' ? netProfitNum : mtdNetProfitNum) >= 0 ? 'var(--color-net-profit-pos)' : 'var(--color-net-profit-neg)' }}>
+              {range === 'month'
+                ? `Net Earnings: ${formatCurrency(netProfitNum)}`
+                : `MTD Net Profit: ${formatCurrency(mtdNetProfitNum)} (${mtdNetMargin.toFixed(1)}%)`}
+            </span>
           </div>
         </div>
       </div>

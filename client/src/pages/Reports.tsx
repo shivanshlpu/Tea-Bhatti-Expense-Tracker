@@ -15,7 +15,7 @@ function Reports() {
 
   const { data: reportData, isLoading, refetch } = useQuery({
     queryKey: ['reports', dateRange.from, dateRange.to, categoryFilter],
-    queryFn: () => reportsApi.get(new Date(dateRange.from).toISOString(), new Date(dateRange.to + 'T23:59:59').toISOString(), categoryFilter),
+    queryFn: () => reportsApi.get(dateRange.from, dateRange.to, categoryFilter),
   });
 
   const handleExportPdf = async () => {
@@ -42,12 +42,30 @@ function Reports() {
     }
   };
 
-  const applyCyclePreset = (presetType: 'this-month' | 'this-cycle15' | 'last-month' | 'last-cycle15') => {
+  const applyCyclePreset = (presetType: 'this-week' | 'last-week' | 'this-month' | 'this-cycle15' | 'last-month' | 'last-cycle15') => {
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
 
-    if (presetType === 'this-month') {
+    if (presetType === 'this-week') {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const from = new Date(now.getFullYear(), now.getMonth(), diff);
+      const to = new Date(now.getFullYear(), now.getMonth(), diff + 6);
+      setDateRange({
+        from: from.toISOString().slice(0, 10),
+        to: to.toISOString().slice(0, 10),
+      });
+    } else if (presetType === 'last-week') {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+      const from = new Date(now.getFullYear(), now.getMonth(), diff);
+      const to = new Date(now.getFullYear(), now.getMonth(), diff + 6);
+      setDateRange({
+        from: from.toISOString().slice(0, 10),
+        to: to.toISOString().slice(0, 10),
+      });
+    } else if (presetType === 'this-month') {
       const from = new Date(curYear, curMonth, 1);
       const to = new Date(curYear, curMonth + 1, 0);
       setDateRange({
@@ -153,17 +171,20 @@ function Reports() {
           {/* Quick Presets Bar */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-muted)', marginRight: '0.25rem' }}>⚡ Quick Presets:</span>
+            <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }} onClick={() => applyCyclePreset('this-week')}>
+              ⚡ This Week (Mon - Sun)
+            </button>
+            <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }} onClick={() => applyCyclePreset('last-week')}>
+              ⏪ Last Week
+            </button>
             <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }} onClick={() => applyCyclePreset('this-month')}>
-              📅 Current Calendar Month (1st - End)
+              📅 This Month (1st - End)
             </button>
             <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem', borderColor: '#0f766e', color: '#0f766e', fontWeight: 600 }} onClick={() => applyCyclePreset('this-cycle15')}>
-              🗓️ Current 15th-to-14th Cycle
+              🗓️ 15th-to-14th Cycle
             </button>
             <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }} onClick={() => applyCyclePreset('last-month')}>
-              ⏪ Last Calendar Month
-            </button>
-            <button type="button" className="btn btn-outline" style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }} onClick={() => applyCyclePreset('last-cycle15')}>
-              ⏪ Last 15th-to-14th Cycle
+              ⏪ Last Month
             </button>
           </div>
 

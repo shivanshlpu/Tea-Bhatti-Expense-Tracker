@@ -185,6 +185,7 @@ function PaymentBreakdown() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-secondary)', marginRight: '0.25rem' }}>📅 Statement Period:</span>
             <button type="button" className={`btn btn-sm ${range === 'today' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRange('today')}>Today</button>
+            <button type="button" className={`btn btn-sm ${range === 'date' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRange('date')}>📅 Specific Date</button>
             <button type="button" className={`btn btn-sm ${range === 'week' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRange('week')}>This Week</button>
             <button type="button" className={`btn btn-sm ${range === 'month' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRange('month')}>This Month</button>
             <button type="button" className={`btn btn-sm ${range === 'year' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRange('year')}>This Year</button>

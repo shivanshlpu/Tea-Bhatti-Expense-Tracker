@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Decimal } from 'decimal.js';
 import prisma from '../config/prisma';
+import { computeOpeningBalance } from '../finance/financeEngine';
 import { authenticate } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
@@ -37,7 +38,7 @@ const saveDailyEntrySchema = z.object({
 
 /**
  * GET /api/daily-entry/balance?date=YYYY-MM-DD
- * Auto-carries forward previous day's closing balance if current day balance is not set.
+ * Auto-carries forward previous day's closing balance based on dynamic cumulative transactions.
  */
 router.get('/balance', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -45,31 +46,12 @@ router.get('/balance', async (req: Request, res: Response, next: NextFunction) =
     const dateStr = (req.query.date as string) || new Date().toISOString().split('T')[0];
     const targetDate = new Date(`${dateStr}T00:00:00.000Z`);
 
-    // 1. Check if DailyBalance exists for target date
-    const existingBalance = await prisma.dailyBalance.findFirst({
-      where: { shopId, date: targetDate },
-    });
+    // Dynamically calculate opening balances from initial float + all prior cumulative transactions
+    const { openingCash: dynOpeningCash, openingBank: dynOpeningBank } = await computeOpeningBalance(shopId, targetDate);
 
-    let openingCash = 0;
-    let openingBank = 0;
-    let autoCarried = false;
-
-    if (existingBalance) {
-      openingCash = Number(existingBalance.openingCash);
-      openingBank = Number(existingBalance.openingBank);
-    } else {
-      // Fetch previous day's closing balance
-      const prevBalance = await prisma.dailyBalance.findFirst({
-        where: { shopId, date: { lt: targetDate } },
-        orderBy: { date: 'desc' },
-      });
-
-      if (prevBalance) {
-        openingCash = Number(prevBalance.closingCash);
-        openingBank = Number(prevBalance.closingBank);
-        autoCarried = true;
-      }
-    }
+    const openingCash = Number(dynOpeningCash);
+    const openingBank = Number(dynOpeningBank);
+    const autoCarried = true;
 
     // Fetch existing entries for date
     const [sales, expenses, drawings] = await Promise.all([

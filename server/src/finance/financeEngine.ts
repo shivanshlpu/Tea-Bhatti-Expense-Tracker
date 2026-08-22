@@ -67,6 +67,253 @@ function sumOrZero(val: Decimal | null | undefined): Decimal {
   return val ? new Decimal(val.toString()) : new Decimal(0);
 }
 
+/**
+ * Compute the opening cash and bank balances dynamically for a given shop on `targetDate`.
+ *
+ * Accounting Logic:
+ * 1. Retrieves the shop's initial starting float (earliest recorded `DailyBalance`).
+ * 2. If no starting float exists, initialCash = 0, initialBank = 0.
+ * 3. If targetDate <= initialDate, returns the initial float.
+ * 4. If targetDate > initialDate, dynamically aggregates all prior net cash and online inflows
+ *    and outflows strictly before `targetDate`:
+ *      Opening Cash = Initial Cash + Prior Net Cash Flow
+ *      Opening Bank = Initial Bank + Prior Net Online Flow
+ *
+ * This ensures that previous days' sales, material costs, shop overheads, drawings, and loans
+ * automatically flow into and adjust subsequent opening balances and cash drawer liquidity in real time.
+ */
+export async function computeOpeningBalance(
+  shopId: string,
+  targetDate: Date
+): Promise<{
+  openingCash: Decimal;
+  openingBank: Decimal;
+  initialCash: Decimal;
+  initialBank: Decimal;
+  initialDate: Date | null;
+}> {
+  const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0);
+  const priorDateFilter = { lt: startOfDay };
+  const baseWhere = { shopId, voidedAt: null };
+
+  const [
+    earliestBalance,
+    priorCashSalesAgg,
+    priorOnlineSalesAgg,
+    priorSalesEntryAgg,
+    priorCashMatAgg,
+    priorOnlineMatAgg,
+    priorCashShopAgg,
+    priorOnlineShopAgg,
+    priorCashMiscAgg,
+    priorOnlineMiscAgg,
+    priorExpenseEntries,
+    priorCashWithdAgg,
+    priorOnlineWithdAgg,
+    priorDrawingsEntries,
+    priorLoanEntries,
+  ] = await Promise.all([
+    prisma.dailyBalance.findFirst({
+      where: { shopId },
+      orderBy: { date: 'asc' },
+    }),
+    // Sales
+    prisma.sale.aggregate({
+      where: { ...baseWhere, type: 'CASH', saleDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.sale.aggregate({
+      where: { ...baseWhere, type: 'ONLINE', saleDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.salesEntry.aggregate({
+      where: { shopId, date: priorDateFilter },
+      _sum: { cashSales: true, upiSales: true, cardSales: true },
+    }),
+    // Material Expenses
+    prisma.materialExpense.aggregate({
+      where: { ...baseWhere, mode: 'CASH', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.materialExpense.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    // Shop Expenses
+    prisma.shopExpense.aggregate({
+      where: { ...baseWhere, mode: 'CASH', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.shopExpense.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    // Misc Expenses
+    prisma.miscExpense.aggregate({
+      where: { ...baseWhere, mode: 'CASH', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.miscExpense.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', expDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    // Expense Entries
+    prisma.expenseEntry.findMany({
+      where: { shopId, date: priorDateFilter },
+    }),
+    // Withdrawals
+    prisma.withdrawal.aggregate({
+      where: { ...baseWhere, mode: 'CASH', wDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    prisma.withdrawal.aggregate({
+      where: { ...baseWhere, mode: 'ONLINE', wDate: priorDateFilter },
+      _sum: { amount: true },
+    }),
+    // Drawings Entries
+    prisma.drawingsEntry.findMany({
+      where: { shopId, date: priorDateFilter },
+    }),
+    // Loan Entries
+    prisma.loanEntry.findMany({
+      where: { shopId, date: priorDateFilter },
+    }),
+  ]);
+
+  let initialCash = new Decimal(0);
+  let initialBank = new Decimal(0);
+  let initialDate: Date | null = null;
+
+  if (earliestBalance) {
+    initialCash = new Decimal(earliestBalance.openingCash.toString());
+    initialBank = new Decimal(earliestBalance.openingBank.toString());
+    initialDate = new Date(
+      earliestBalance.date.getFullYear(),
+      earliestBalance.date.getMonth(),
+      earliestBalance.date.getDate(),
+      0, 0, 0, 0
+    );
+  }
+
+  // If target date is on or before initial date, return initial balances
+  if (initialDate && startOfDay <= initialDate) {
+    return {
+      openingCash: initialCash,
+      openingBank: initialBank,
+      initialCash,
+      initialBank,
+      initialDate,
+    };
+  }
+
+  // Aggregate Prior Cash & Online Sales
+  const priorCashSales = sumOrZero(priorCashSalesAgg._sum.amount).plus(sumOrZero(priorSalesEntryAgg._sum.cashSales));
+  const priorOnlineSales = sumOrZero(priorOnlineSalesAgg._sum.amount)
+    .plus(sumOrZero(priorSalesEntryAgg._sum.upiSales))
+    .plus(sumOrZero(priorSalesEntryAgg._sum.cardSales));
+
+  // Aggregate Prior Expenses
+  let priorEntryCashExp = new Decimal(0);
+  let priorEntryOnlineExp = new Decimal(0);
+
+  for (const exp of priorExpenseEntries) {
+    const amt = new Decimal(exp.amount.toString());
+    if (exp.paymentMode === 'Cash') {
+      priorEntryCashExp = priorEntryCashExp.plus(amt);
+    } else {
+      priorEntryOnlineExp = priorEntryOnlineExp.plus(amt);
+    }
+  }
+
+  const priorCashExpenses = sumOrZero(priorCashMatAgg._sum.amount)
+    .plus(sumOrZero(priorCashShopAgg._sum.amount))
+    .plus(sumOrZero(priorCashMiscAgg._sum.amount))
+    .plus(priorEntryCashExp);
+
+  const priorOnlineExpenses = sumOrZero(priorOnlineMatAgg._sum.amount)
+    .plus(sumOrZero(priorOnlineShopAgg._sum.amount))
+    .plus(sumOrZero(priorOnlineMiscAgg._sum.amount))
+    .plus(priorEntryOnlineExp);
+
+  // Aggregate Prior Withdrawals / Drawings
+  let priorEntryCashDrawings = new Decimal(0);
+  let priorEntryOnlineDrawings = new Decimal(0);
+
+  for (const d of priorDrawingsEntries) {
+    const amt = new Decimal(d.amount.toString());
+    if (d.paymentMode === 'Cash') {
+      priorEntryCashDrawings = priorEntryCashDrawings.plus(amt);
+    } else {
+      priorEntryOnlineDrawings = priorEntryOnlineDrawings.plus(amt);
+    }
+  }
+
+  const priorCashWithdrawals = sumOrZero(priorCashWithdAgg._sum.amount).plus(priorEntryCashDrawings);
+  const priorOnlineWithdrawals = sumOrZero(priorOnlineWithdAgg._sum.amount).plus(priorEntryOnlineDrawings);
+
+  // Aggregate Prior Loans
+  let priorCashLoanGiven = new Decimal(0);
+  let priorOnlineLoanGiven = new Decimal(0);
+  let priorCashLoanGivenReturned = new Decimal(0);
+  let priorOnlineLoanGivenReturned = new Decimal(0);
+
+  let priorCashLoanTaken = new Decimal(0);
+  let priorOnlineLoanTaken = new Decimal(0);
+  let priorCashLoanTakenReturned = new Decimal(0);
+  let priorOnlineLoanTakenReturned = new Decimal(0);
+
+  for (const l of priorLoanEntries) {
+    const amt = new Decimal(l.amount.toString());
+    const ret = new Decimal(l.returnedAmount.toString());
+    const mode = (l.paymentMode || 'CASH').toUpperCase();
+
+    if (l.type === 'GIVEN') {
+      if (mode === 'ONLINE') {
+        priorOnlineLoanGiven = priorOnlineLoanGiven.plus(amt);
+        priorOnlineLoanGivenReturned = priorOnlineLoanGivenReturned.plus(ret);
+      } else {
+        priorCashLoanGiven = priorCashLoanGiven.plus(amt);
+        priorCashLoanGivenReturned = priorCashLoanGivenReturned.plus(ret);
+      }
+    } else if (l.type === 'TAKEN') {
+      if (mode === 'ONLINE') {
+        priorOnlineLoanTaken = priorOnlineLoanTaken.plus(amt);
+        priorOnlineLoanTakenReturned = priorOnlineLoanTakenReturned.plus(ret);
+      } else {
+        priorCashLoanTaken = priorCashLoanTaken.plus(amt);
+        priorCashLoanTakenReturned = priorCashLoanTakenReturned.plus(ret);
+      }
+    }
+  }
+
+  const priorNetCashFlow = priorCashSales
+    .plus(priorCashLoanTaken)
+    .plus(priorCashLoanGivenReturned)
+    .minus(priorCashExpenses)
+    .minus(priorCashWithdrawals)
+    .minus(priorCashLoanGiven)
+    .minus(priorCashLoanTakenReturned);
+
+  const priorNetOnlineFlow = priorOnlineSales
+    .plus(priorOnlineLoanTaken)
+    .plus(priorOnlineLoanGivenReturned)
+    .minus(priorOnlineExpenses)
+    .minus(priorOnlineWithdrawals)
+    .minus(priorOnlineLoanGiven)
+    .minus(priorOnlineLoanTakenReturned);
+
+  const openingCash = initialCash.plus(priorNetCashFlow);
+  const openingBank = initialBank.plus(priorNetOnlineFlow);
+
+  return {
+    openingCash,
+    openingBank,
+    initialCash,
+    initialBank,
+    initialDate,
+  };
+}
+
 export async function computeFinanceSummary(
   shopId: string,
   range: DateRange
@@ -262,36 +509,10 @@ export async function computeFinanceSummary(
   const pendingLoanTaken = sumOrZero(pendingTakenAgg._sum.pendingAmount);
   const pendingLoanGiven = sumOrZero(pendingGivenAgg._sum.pendingAmount);
 
-  // ── Period Opening Balances ──
-  // Opening balance at the start of the period
-  const startDay = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  let balanceOnOrBefore = await prisma.dailyBalance.findFirst({
-    where: { shopId, date: { lte: startDay } },
-    orderBy: { date: 'desc' },
-  });
-
-  // If no balance exists on or before startDay (e.g. Month/Year view before initial setup date),
-  // pick the earliest recorded initial DailyBalance so we preserve the opening float
-  if (!balanceOnOrBefore) {
-    balanceOnOrBefore = await prisma.dailyBalance.findFirst({
-      where: { shopId },
-      orderBy: { date: 'asc' },
-    });
-  }
-
-  let openingCashVal = new Decimal(0);
-  let openingBankVal = new Decimal(0);
-
-  if (balanceOnOrBefore) {
-    const isSameDay = balanceOnOrBefore.date.toISOString().slice(0, 10) === startDay.toISOString().slice(0, 10);
-    if (isSameDay || balanceOnOrBefore.date > startDay) {
-      openingCashVal = new Decimal(balanceOnOrBefore.openingCash.toString());
-      openingBankVal = new Decimal(balanceOnOrBefore.openingBank.toString());
-    } else {
-      openingCashVal = new Decimal(balanceOnOrBefore.closingCash.toString());
-      openingBankVal = new Decimal(balanceOnOrBefore.closingBank.toString());
-    }
-  }
+  // ── Period Opening Balances (Dynamic Cumulative Calculation) ──
+  const { openingCash, openingBank } = await computeOpeningBalance(shopId, from);
+  const openingCashVal = openingCash;
+  const openingBankVal = openingBank;
 
   const totalCashExpenses = cashMaterialExpenses.plus(cashShopExpenses).plus(cashMiscExpenses);
   const totalOnlineExpenses = onlineMaterialExpenses.plus(onlineShopExpenses).plus(onlineMiscExpenses);

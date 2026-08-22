@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Decimal } from 'decimal.js';
 import { UpdateShopSettingsSchema } from '@shop-finance/shared';
 import prisma from '../config/prisma';
+import { computeOpeningBalance } from '../finance/financeEngine';
 import { authenticate, authorize } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
@@ -74,7 +75,7 @@ router.patch('/shop', authorize('OWNER'), async (req: Request, res: Response, ne
 
 /**
  * GET /api/settings/opening-balance
- * Get opening cash & bank for today or specified date
+ * Get opening cash & bank for today or specified date (dynamically computed from initial float + prior cumulative flow)
  */
 router.get('/opening-balance', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -82,37 +83,19 @@ router.get('/opening-balance', async (req: Request, res: Response, next: NextFun
     const dateStr = (req.query.date as string) || new Date().toISOString().split('T')[0];
     const targetDate = new Date(`${dateStr}T00:00:00.000Z`);
 
-    const existing = await prisma.dailyBalance.findFirst({
-      where: { shopId, date: targetDate },
-    });
-
-    let openingCash = 0;
-    let openingBank = 0;
-    let autoCarried = false;
-
-    if (existing) {
-      openingCash = Number(existing.openingCash);
-      openingBank = Number(existing.openingBank);
-    } else {
-      const prev = await prisma.dailyBalance.findFirst({
-        where: { shopId, date: { lt: targetDate } },
-        orderBy: { date: 'desc' },
-      });
-      if (prev) {
-        openingCash = Number(prev.closingCash);
-        openingBank = Number(prev.closingBank);
-        autoCarried = true;
-      }
-    }
+    const { openingCash, openingBank, initialCash, initialBank, initialDate } = await computeOpeningBalance(shopId, targetDate);
 
     res.json({
       success: true,
       data: {
         date: dateStr,
-        openingCash,
-        openingBank,
-        totalOpening: openingCash + openingBank,
-        autoCarried,
+        openingCash: Number(openingCash),
+        openingBank: Number(openingBank),
+        totalOpening: Number(openingCash.plus(openingBank)),
+        initialCash: Number(initialCash),
+        initialBank: Number(initialBank),
+        initialDate: initialDate ? initialDate.toISOString().split('T')[0] : null,
+        autoCarried: true,
       },
     });
   } catch (err) {
@@ -122,7 +105,7 @@ router.get('/opening-balance', async (req: Request, res: Response, next: NextFun
 
 /**
  * POST /api/settings/opening-balance
- * Save/update opening cash & bank balance
+ * Save/update initial opening cash & bank float for the shop
  */
 router.post('/opening-balance', authorize('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -139,14 +122,6 @@ router.post('/opening-balance', authorize('OWNER'), async (req: Request, res: Re
     const now = new Date();
     const balanceId = `db_${shopId}_${dateStr}`;
 
-    const existing = await prisma.dailyBalance.findFirst({
-      where: { shopId, date: targetDate },
-    });
-
-    const closingCash = existing ? new Decimal(existing.closingCash.toString()) : cashDec;
-    const closingBank = existing ? new Decimal(existing.closingBank.toString()) : bankDec;
-    const totalClosing = closingCash.plus(closingBank);
-
     const updated = await prisma.dailyBalance.upsert({
       where: { shopId_date: { shopId, date: targetDate } },
       create: {
@@ -156,9 +131,9 @@ router.post('/opening-balance', authorize('OWNER'), async (req: Request, res: Re
         openingCash: cashDec,
         openingBank: bankDec,
         totalOpening: totalDec,
-        closingCash,
-        closingBank,
-        totalClosing,
+        closingCash: cashDec,
+        closingBank: bankDec,
+        totalClosing: totalDec,
         updatedAt: now,
       },
       update: {
